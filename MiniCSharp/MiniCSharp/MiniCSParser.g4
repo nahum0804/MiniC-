@@ -13,6 +13,8 @@ classDecl   	    : CLASS ident BL varDecl* BR
                     ;
 methodDecl  	    : ( type | VOID ) ident LEFTP ( formPars )? RIGHTP block
                     ;
+
+
 formPars    	    : type ident ( COMMA type ident )*
                     ;
 type        	    : ident ( SBL SBR )?

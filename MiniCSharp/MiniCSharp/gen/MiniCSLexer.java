@@ -1,4 +1,4 @@
-// Generated from C:/Users/n4hum/OneDrive/Escritorio/Codigo-MainDir/C#/ProyectoCompi/MiniCSharp/MiniCSharp/MiniCSLexer.g4 by ANTLR 4.13.2
+// Generated from E:/Compiladores/MiniC-/MiniCSharp/MiniCSharp/MiniCSLexer.g4 by ANTLR 4.13.2
 import org.antlr.v4.runtime.Lexer;
 import org.antlr.v4.runtime.CharStream;
 import org.antlr.v4.runtime.Token;

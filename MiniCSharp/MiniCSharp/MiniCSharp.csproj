@@ -1,13 +1,28 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
     <PropertyGroup>
+        <!-- 1) Indica que es un EXE (aplicación de consola) -->
+        <OutputType>Exe</OutputType>
+
+        <!-- 2) Versión de .NET que estás usando -->
         <TargetFramework>net9.0</TargetFramework>
+
+        <!-- Estas líneas solo habilitan usings implícitos y nullable -->
         <ImplicitUsings>enable</ImplicitUsings>
         <Nullable>enable</Nullable>
     </PropertyGroup>
 
     <ItemGroup>
-      <PackageReference Include="Antlr4.Runtime.Standard" Version="4.13.1" />
+        <!-- Runtime de ANTLR para C# -->
+        <PackageReference Include="Antlr4.Runtime.Standard" Version="4.13.1" />
+
+        <!-- Tareas de build que invocan ANTLR para _tus_ .g4 -->
+        <PackageReference Include="Antlr4BuildTasks" Version="12.10.0" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <!-- 3) Dile a MSBuild que procese todos los .g4 dentro de “Grammars\*.g4” -->
+        <Antlr4 Include="Grammars\*.g4" />
     </ItemGroup>
 
 </Project>
