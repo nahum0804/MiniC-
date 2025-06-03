@@ -11,6 +11,10 @@ RETURN      : 'return';
 BREAK       : 'break';
 READ        : 'read';
 WRITE       : 'write';
+SWITCH      : 'switch';
+USING       : 'using';
+DEFAULT     : 'default';
+CASE        : 'case';
 
 
 NEW         : 'new';
@@ -46,6 +50,7 @@ GREATEREQ   : '>=';
 MULT        : '*';
 DIV         : '/';
 MOD         : '%';
+DOTS        : ':';
 
 
 

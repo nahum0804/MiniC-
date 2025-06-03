@@ -5,7 +5,7 @@ options {
 }
 
 
-program             : CLASS ident BL ( varDecl | classDecl | methodDecl )* BR
+program             : usingDecl* CLASS ident BL ( varDecl | classDecl | methodDecl )* BR
                     ;                    
 varDecl             : type ident ( COMMA ident )* SEMICOLON
                     ;
@@ -27,6 +27,7 @@ statement           : designator ( ASSIGN expr | LEFTP ( actPars )? RIGHTP | ADD
                     | RETURN ( expr )?  SEMICOLON
                     | READ LEFTP designator RIGHTP SEMICOLON
                     | WRITE LEFTP expr ( COMMA NUMLIT )? RIGHTP SEMICOLON
+                    | SWITCH LEFTP expr RIGHTP BL  caseBlock* SBL DEFAULT DOTS statement* SBR BR SEMICOLON
                     | block
                     | SEMICOLON
                     ;
@@ -65,3 +66,7 @@ mulop       	    : MULT | DIV | MOD
                     ;
 ident               : ID
                     ;
+                    
+caseBlock           : CASE condition DOTS statement*;
+
+usingDecl           : USING ident ( DOT ident )* SEMICOLON;
