@@ -19,7 +19,8 @@ class Program
                                                              z = a + x;      // x ha sido declarado globalmente
                                                              write(z, 10);
                                                          }
-                                                         void foo(int a) { }  // redeclaración: error semántico
+                                                         
+                                                         int j;
                                                      }
                                                  
                                      """;

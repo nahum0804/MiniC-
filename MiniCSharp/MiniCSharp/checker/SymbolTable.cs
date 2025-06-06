@@ -39,7 +39,7 @@ public class SymbolTable
 
     public Symbol? LookupInCurrentLevel(string name)
     {
-        return _symbols.TakeWhile(symbol => symbol.ScopeLevel == CurrentLevel)
+        return _symbols.Where(symbol => symbol.ScopeLevel == CurrentLevel)
             .FirstOrDefault(symbol => symbol.Token.Text.Equals(name, StringComparison.Ordinal));
     }
 

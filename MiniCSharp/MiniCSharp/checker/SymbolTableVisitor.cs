@@ -12,21 +12,33 @@ public class SymbolTableVisitor : MiniCSParserBaseVisitor<object>
     {
         Table.OpenScope();
 
-        foreach (var child in context.children)
+        var classToken = context.ident().Start;
+        if (!Table.InsertVariable(classToken, typeTag: -2, isConstant: true, context))
         {
-            switch (child)
-            {
-                case MiniCSParser.VarDeclContext vdc:
-                    VisitVarDecl(vdc);
-                    break;
-                case MiniCSParser.MethodDeclContext mdc:
-                    VisitMethodDecl(mdc);
-                    break;
-                case MiniCSParser.ClassDeclContext cdc:
-                    VisitClassDecl(cdc);
-                    break;
-            }
+            Console.ForegroundColor = ConsoleColor.Red;
+            Console.WriteLine(
+                $"Error semántico: clase '{classToken.Text}' redeclarada en el mismo scope (línea {classToken.Line}).");
+            Console.ResetColor();
         }
+
+        Table.OpenScope();
+
+        foreach (var vdc in context.varDecl())
+        {
+            VisitVarDecl(vdc);
+        }
+
+        foreach (var mdc in context.methodDecl())
+        {
+            VisitMethodDecl(mdc);
+        }
+
+        foreach (var mdc in context.classDecl())
+        {
+            VisitClassDecl(mdc);
+        }
+
+        Table.CloseScope();
 
         return null;
     }
@@ -41,91 +53,103 @@ public class SymbolTableVisitor : MiniCSParserBaseVisitor<object>
         {
             var idToken = idCtx.Start;
             var ok = Table.InsertVariable(idToken, typeTag, isConstant: false, context);
-            if (ok) continue;
-            Console.ForegroundColor = ConsoleColor.Red;
-            Console.WriteLine(
-                $"Error semántico: variable '{idToken.Text}' redeclarada en el mismo scope (línea {idToken.Line}).");
-            Console.ResetColor();
+            if (!ok)
+            {
+                Console.ForegroundColor = ConsoleColor.Red;
+                Console.WriteLine(
+                    $"Error semántico: variable '{idToken.Text}' redeclarada en el mismo scope (línea {idToken.Line}).");
+                Console.ResetColor();
+            }
         }
-
         return null;
     }
 
 
     public override object VisitClassDecl(MiniCSParser.ClassDeclContext context)
     {
-        foreach (var vdc in context.varDecl())
-            VisitVarDecl(vdc);
-        return null;
-    }
-
-    public override object VisitMethodDecl(MiniCSParser.MethodDeclContext context)
-    {
-        var methodName = context.ident().GetText();
-        int returnTypeTag;
-
-        if (context.VOID() != null)
-        {
-            // void = -1 (importante)
-            returnTypeTag = -1;
-        }
-        else
-        {
-            var retTypeName = context.type().GetText();
-            returnTypeTag = GetTypeTag(retTypeName);
-        }
-
-        var paramTypeTags = new List<int>();
-        var formParsCtx = context.formPars();
-        if (formParsCtx != null)
-        {
-            for (var i = 0; i < formParsCtx.ident().Length; i++)
-            {
-                var ptype = formParsCtx.type(i).GetText();
-                var pTag = GetTypeTag(ptype);
-                paramTypeTags.Add(pTag);
-            }
-        }
-
-        var methodToken = context.ident().Start;
-        var okMethod = Table.InsertMethod(methodToken, returnTypeTag, paramTypeTags, context);
-        if (!okMethod)
+        var classToken = context.ident().Start;
+        if (!Table.InsertVariable(classToken, typeTag: -2, isConstant: true, context))
         {
             Console.ForegroundColor = ConsoleColor.Red;
             Console.WriteLine(
-                $"Error semántico: método '{methodName}' redeclarado en el mismo scope (línea {methodToken.Line}).");
+                $"Error semántico: clase '{classToken.Text}' redeclarada en el mismo scope (línea {classToken.Line}).");
             Console.ResetColor();
         }
-
-        Table.OpenScope(); //Level +1
-
-        if (formParsCtx != null)
+        
+        Table.OpenScope();
+        
+        foreach (var fieldDecl in context.varDecl())
         {
-            for (var i = 0; i < formParsCtx.ident().Length; i++)
-            {
-                var pTok = formParsCtx.ident(i).Start;
-                var pTypeName = formParsCtx.type(i).GetText();
-                var pTypeTag = GetTypeTag(pTypeName);
-
-                var okParam = Table.InsertVariable(pTok, pTypeTag, isConstant: false, formParsCtx);
-                if (okParam) continue;
-                Console.ForegroundColor = ConsoleColor.Red;
-                Console.WriteLine(
-                    $"Error semántico: parámetro '{pTok.Text}' duplicado en el método '{methodName}' (línea {pTok.Line}).");
-                Console.ResetColor();
-            }
+            VisitVarDecl(fieldDecl);
         }
 
-        Visit(context.block());
+        foreach (var mtdDecl in context.methodDecl())
+        {
+            VisitMethodDecl(mtdDecl);
+        }
 
         Table.CloseScope();
 
         return null;
     }
 
+    public override object VisitMethodDecl(MiniCSParser.MethodDeclContext context)
+        {
+            var methodName = context.ident().GetText();
+            int returnTypeTag = context.VOID() != null
+                ? -1
+                : GetTypeTag(context.type().GetText());
+            
+            var paramTypeTags = new List<int>();
+            var formParsCtx = context.formPars();
+            if (formParsCtx != null)
+            {
+                for (int i = 0; i < formParsCtx.ident().Length; i++)
+                {
+                    var ptype = formParsCtx.type(i).GetText();
+                    paramTypeTags.Add(GetTypeTag(ptype));
+                }
+            }
+
+           
+            var methodToken = context.ident().Start;
+            var okMethod = Table.InsertMethod(methodToken, returnTypeTag, paramTypeTags, context);
+            if (!okMethod)
+            {
+                Console.ForegroundColor = ConsoleColor.Red;
+                Console.WriteLine(
+                    $"Error semántico: método '{methodName}' redeclarado en el mismo scope (línea {methodToken.Line}).");
+                Console.ResetColor();
+            }
+            
+            Table.OpenScope();
+            
+            if (formParsCtx != null)
+            {
+                for (int i = 0; i < formParsCtx.ident().Length; i++)
+                {
+                    var pTok = formParsCtx.ident(i).Start;
+                    var pTypeTag = GetTypeTag(formParsCtx.type(i).GetText());
+                    var okParam = Table.InsertVariable(pTok, pTypeTag, isConstant: false, formParsCtx);
+                    if (!okParam)
+                    {
+                        Console.ForegroundColor = ConsoleColor.Red;
+                        Console.WriteLine(
+                            $"Error semántico: parámetro '{pTok.Text}' duplicado en el método '{methodName}' (línea {pTok.Line}).");
+                        Console.ResetColor();
+                    }
+                }
+            }
+            
+            Visit(context.block());
+            
+            Table.CloseScope();
+            return null;
+        }
+
     public override object VisitBlock(MiniCSParser.BlockContext context)
     {
-        Table.OpenScope(); // Level +1
+        Table.OpenScope(); 
 
         foreach (var child in context.children)
         {
@@ -139,8 +163,7 @@ public class SymbolTableVisitor : MiniCSParserBaseVisitor<object>
                     break;
             }
         }
-
-        Table.CloseScope();
+        
         return null;
     }
 

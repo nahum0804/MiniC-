@@ -97,17 +97,103 @@ public partial class MiniCSParserBaseListener : IMiniCSParserListener {
 	/// <param name="context">The parse tree.</param>
 	public virtual void ExitFormPars([NotNull] MiniCSParser.FormParsContext context) { }
 	/// <summary>
-	/// Enter a parse tree produced by <see cref="MiniCSParser.type"/>.
+	/// Enter a parse tree produced by the <c>simpletype</c>
+	/// labeled alternative in <see cref="MiniCSParser.type"/>.
 	/// <para>The default implementation does nothing.</para>
 	/// </summary>
 	/// <param name="context">The parse tree.</param>
-	public virtual void EnterType([NotNull] MiniCSParser.TypeContext context) { }
+	public virtual void EnterSimpletype([NotNull] MiniCSParser.SimpletypeContext context) { }
 	/// <summary>
-	/// Exit a parse tree produced by <see cref="MiniCSParser.type"/>.
+	/// Exit a parse tree produced by the <c>simpletype</c>
+	/// labeled alternative in <see cref="MiniCSParser.type"/>.
 	/// <para>The default implementation does nothing.</para>
 	/// </summary>
 	/// <param name="context">The parse tree.</param>
-	public virtual void ExitType([NotNull] MiniCSParser.TypeContext context) { }
+	public virtual void ExitSimpletype([NotNull] MiniCSParser.SimpletypeContext context) { }
+	/// <summary>
+	/// Enter a parse tree produced by the <c>listOfSimple</c>
+	/// labeled alternative in <see cref="MiniCSParser.type"/>.
+	/// <para>The default implementation does nothing.</para>
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	public virtual void EnterListOfSimple([NotNull] MiniCSParser.ListOfSimpleContext context) { }
+	/// <summary>
+	/// Exit a parse tree produced by the <c>listOfSimple</c>
+	/// labeled alternative in <see cref="MiniCSParser.type"/>.
+	/// <para>The default implementation does nothing.</para>
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	public virtual void ExitListOfSimple([NotNull] MiniCSParser.ListOfSimpleContext context) { }
+	/// <summary>
+	/// Enter a parse tree produced by the <c>userTypeOrArray</c>
+	/// labeled alternative in <see cref="MiniCSParser.type"/>.
+	/// <para>The default implementation does nothing.</para>
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	public virtual void EnterUserTypeOrArray([NotNull] MiniCSParser.UserTypeOrArrayContext context) { }
+	/// <summary>
+	/// Exit a parse tree produced by the <c>userTypeOrArray</c>
+	/// labeled alternative in <see cref="MiniCSParser.type"/>.
+	/// <para>The default implementation does nothing.</para>
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	public virtual void ExitUserTypeOrArray([NotNull] MiniCSParser.UserTypeOrArrayContext context) { }
+	/// <summary>
+	/// Enter a parse tree produced by the <c>intType</c>
+	/// labeled alternative in <see cref="MiniCSParser.simpleType"/>.
+	/// <para>The default implementation does nothing.</para>
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	public virtual void EnterIntType([NotNull] MiniCSParser.IntTypeContext context) { }
+	/// <summary>
+	/// Exit a parse tree produced by the <c>intType</c>
+	/// labeled alternative in <see cref="MiniCSParser.simpleType"/>.
+	/// <para>The default implementation does nothing.</para>
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	public virtual void ExitIntType([NotNull] MiniCSParser.IntTypeContext context) { }
+	/// <summary>
+	/// Enter a parse tree produced by the <c>charType</c>
+	/// labeled alternative in <see cref="MiniCSParser.simpleType"/>.
+	/// <para>The default implementation does nothing.</para>
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	public virtual void EnterCharType([NotNull] MiniCSParser.CharTypeContext context) { }
+	/// <summary>
+	/// Exit a parse tree produced by the <c>charType</c>
+	/// labeled alternative in <see cref="MiniCSParser.simpleType"/>.
+	/// <para>The default implementation does nothing.</para>
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	public virtual void ExitCharType([NotNull] MiniCSParser.CharTypeContext context) { }
+	/// <summary>
+	/// Enter a parse tree produced by the <c>boolType</c>
+	/// labeled alternative in <see cref="MiniCSParser.simpleType"/>.
+	/// <para>The default implementation does nothing.</para>
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	public virtual void EnterBoolType([NotNull] MiniCSParser.BoolTypeContext context) { }
+	/// <summary>
+	/// Exit a parse tree produced by the <c>boolType</c>
+	/// labeled alternative in <see cref="MiniCSParser.simpleType"/>.
+	/// <para>The default implementation does nothing.</para>
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	public virtual void ExitBoolType([NotNull] MiniCSParser.BoolTypeContext context) { }
+	/// <summary>
+	/// Enter a parse tree produced by the <c>stringType</c>
+	/// labeled alternative in <see cref="MiniCSParser.simpleType"/>.
+	/// <para>The default implementation does nothing.</para>
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	public virtual void EnterStringType([NotNull] MiniCSParser.StringTypeContext context) { }
+	/// <summary>
+	/// Exit a parse tree produced by the <c>stringType</c>
+	/// labeled alternative in <see cref="MiniCSParser.simpleType"/>.
+	/// <para>The default implementation does nothing.</para>
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	public virtual void ExitStringType([NotNull] MiniCSParser.StringTypeContext context) { }
 	/// <summary>
 	/// Enter a parse tree produced by <see cref="MiniCSParser.statement"/>.
 	/// <para>The default implementation does nothing.</para>
@@ -229,6 +315,18 @@ public partial class MiniCSParserBaseListener : IMiniCSParserListener {
 	/// <param name="context">The parse tree.</param>
 	public virtual void ExitFactor([NotNull] MiniCSParser.FactorContext context) { }
 	/// <summary>
+	/// Enter a parse tree produced by <see cref="MiniCSParser.listLiteral"/>.
+	/// <para>The default implementation does nothing.</para>
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	public virtual void EnterListLiteral([NotNull] MiniCSParser.ListLiteralContext context) { }
+	/// <summary>
+	/// Exit a parse tree produced by <see cref="MiniCSParser.listLiteral"/>.
+	/// <para>The default implementation does nothing.</para>
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	public virtual void ExitListLiteral([NotNull] MiniCSParser.ListLiteralContext context) { }
+	/// <summary>
 	/// Enter a parse tree produced by <see cref="MiniCSParser.designator"/>.
 	/// <para>The default implementation does nothing.</para>
 	/// </summary>
@@ -288,6 +386,30 @@ public partial class MiniCSParserBaseListener : IMiniCSParserListener {
 	/// </summary>
 	/// <param name="context">The parse tree.</param>
 	public virtual void ExitIdent([NotNull] MiniCSParser.IdentContext context) { }
+	/// <summary>
+	/// Enter a parse tree produced by <see cref="MiniCSParser.caseBlock"/>.
+	/// <para>The default implementation does nothing.</para>
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	public virtual void EnterCaseBlock([NotNull] MiniCSParser.CaseBlockContext context) { }
+	/// <summary>
+	/// Exit a parse tree produced by <see cref="MiniCSParser.caseBlock"/>.
+	/// <para>The default implementation does nothing.</para>
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	public virtual void ExitCaseBlock([NotNull] MiniCSParser.CaseBlockContext context) { }
+	/// <summary>
+	/// Enter a parse tree produced by <see cref="MiniCSParser.usingDecl"/>.
+	/// <para>The default implementation does nothing.</para>
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	public virtual void EnterUsingDecl([NotNull] MiniCSParser.UsingDeclContext context) { }
+	/// <summary>
+	/// Exit a parse tree produced by <see cref="MiniCSParser.usingDecl"/>.
+	/// <para>The default implementation does nothing.</para>
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	public virtual void ExitUsingDecl([NotNull] MiniCSParser.UsingDeclContext context) { }
 
 	/// <inheritdoc/>
 	/// <remarks>The default implementation does nothing.</remarks>

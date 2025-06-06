@@ -9,16 +9,25 @@ program             : usingDecl* CLASS ident BL ( varDecl | classDecl | methodDe
                     ;                    
 varDecl             : type ident ( COMMA ident )* SEMICOLON
                     ;
-classDecl   	    : CLASS ident BL varDecl* BR 
+classDecl   	    : CLASS ident BL ( varDecl | methodDecl )* BR 
                     ;
 methodDecl  	    : ( type | VOID ) ident LEFTP ( formPars )? RIGHTP block
                     ;
 
-
 formPars    	    : type ident ( COMMA type ident )*
                     ;
-type        	    : ident ( SBL SBR )?
+                    
+type        	    : simpleType                           # simpletype
+                    | LIST LESS simpleType GREATER         # listOfSimple
+                    | ident ( SBL SBR )?                   # userTypeOrArray
                     ;
+                    
+simpleType          : INT                                  # intType
+                    | CHAR                                 # charType
+                    | BOOL                                 # boolType
+                    | STRING_TYPE                          # stringType
+                    ;
+                    
 statement           : designator ( ASSIGN expr | LEFTP ( actPars )? RIGHTP | ADD | SUB ) SEMICOLON
             	    | IF LEFTP condition RIGHTP statement ( ELSE statement )?
             	    | FOR LEFTP expr SEMICOLON ( condition )? SEMICOLON ( statement )? RIGHTP statement
@@ -55,7 +64,12 @@ factor     	        : designator ( LEFTP ( actPars )? RIGHTP )?
                     | FALSE
                     | NEW ident
                     | LEFTP expr RIGHTP
+                    | listLiteral
                     ;   
+                    
+listLiteral         : LESS expr ( COMMA expr )* GREATER
+                    ;
+                    
 designator  	    : ident ( DOT ident | SBL expr SBR )*
                     ;
 relop       	    : EQEQ | NOTEQ | GREATER | GREATEREQ | LESS | LESSEQ

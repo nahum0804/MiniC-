@@ -82,15 +82,89 @@ public interface IMiniCSParserListener : IParseTreeListener {
 	/// <param name="context">The parse tree.</param>
 	void ExitFormPars([NotNull] MiniCSParser.FormParsContext context);
 	/// <summary>
-	/// Enter a parse tree produced by <see cref="MiniCSParser.type"/>.
+	/// Enter a parse tree produced by the <c>simpletype</c>
+	/// labeled alternative in <see cref="MiniCSParser.type"/>.
 	/// </summary>
 	/// <param name="context">The parse tree.</param>
-	void EnterType([NotNull] MiniCSParser.TypeContext context);
+	void EnterSimpletype([NotNull] MiniCSParser.SimpletypeContext context);
 	/// <summary>
-	/// Exit a parse tree produced by <see cref="MiniCSParser.type"/>.
+	/// Exit a parse tree produced by the <c>simpletype</c>
+	/// labeled alternative in <see cref="MiniCSParser.type"/>.
 	/// </summary>
 	/// <param name="context">The parse tree.</param>
-	void ExitType([NotNull] MiniCSParser.TypeContext context);
+	void ExitSimpletype([NotNull] MiniCSParser.SimpletypeContext context);
+	/// <summary>
+	/// Enter a parse tree produced by the <c>listOfSimple</c>
+	/// labeled alternative in <see cref="MiniCSParser.type"/>.
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	void EnterListOfSimple([NotNull] MiniCSParser.ListOfSimpleContext context);
+	/// <summary>
+	/// Exit a parse tree produced by the <c>listOfSimple</c>
+	/// labeled alternative in <see cref="MiniCSParser.type"/>.
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	void ExitListOfSimple([NotNull] MiniCSParser.ListOfSimpleContext context);
+	/// <summary>
+	/// Enter a parse tree produced by the <c>userTypeOrArray</c>
+	/// labeled alternative in <see cref="MiniCSParser.type"/>.
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	void EnterUserTypeOrArray([NotNull] MiniCSParser.UserTypeOrArrayContext context);
+	/// <summary>
+	/// Exit a parse tree produced by the <c>userTypeOrArray</c>
+	/// labeled alternative in <see cref="MiniCSParser.type"/>.
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	void ExitUserTypeOrArray([NotNull] MiniCSParser.UserTypeOrArrayContext context);
+	/// <summary>
+	/// Enter a parse tree produced by the <c>intType</c>
+	/// labeled alternative in <see cref="MiniCSParser.simpleType"/>.
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	void EnterIntType([NotNull] MiniCSParser.IntTypeContext context);
+	/// <summary>
+	/// Exit a parse tree produced by the <c>intType</c>
+	/// labeled alternative in <see cref="MiniCSParser.simpleType"/>.
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	void ExitIntType([NotNull] MiniCSParser.IntTypeContext context);
+	/// <summary>
+	/// Enter a parse tree produced by the <c>charType</c>
+	/// labeled alternative in <see cref="MiniCSParser.simpleType"/>.
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	void EnterCharType([NotNull] MiniCSParser.CharTypeContext context);
+	/// <summary>
+	/// Exit a parse tree produced by the <c>charType</c>
+	/// labeled alternative in <see cref="MiniCSParser.simpleType"/>.
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	void ExitCharType([NotNull] MiniCSParser.CharTypeContext context);
+	/// <summary>
+	/// Enter a parse tree produced by the <c>boolType</c>
+	/// labeled alternative in <see cref="MiniCSParser.simpleType"/>.
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	void EnterBoolType([NotNull] MiniCSParser.BoolTypeContext context);
+	/// <summary>
+	/// Exit a parse tree produced by the <c>boolType</c>
+	/// labeled alternative in <see cref="MiniCSParser.simpleType"/>.
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	void ExitBoolType([NotNull] MiniCSParser.BoolTypeContext context);
+	/// <summary>
+	/// Enter a parse tree produced by the <c>stringType</c>
+	/// labeled alternative in <see cref="MiniCSParser.simpleType"/>.
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	void EnterStringType([NotNull] MiniCSParser.StringTypeContext context);
+	/// <summary>
+	/// Exit a parse tree produced by the <c>stringType</c>
+	/// labeled alternative in <see cref="MiniCSParser.simpleType"/>.
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	void ExitStringType([NotNull] MiniCSParser.StringTypeContext context);
 	/// <summary>
 	/// Enter a parse tree produced by <see cref="MiniCSParser.statement"/>.
 	/// </summary>
@@ -192,6 +266,16 @@ public interface IMiniCSParserListener : IParseTreeListener {
 	/// <param name="context">The parse tree.</param>
 	void ExitFactor([NotNull] MiniCSParser.FactorContext context);
 	/// <summary>
+	/// Enter a parse tree produced by <see cref="MiniCSParser.listLiteral"/>.
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	void EnterListLiteral([NotNull] MiniCSParser.ListLiteralContext context);
+	/// <summary>
+	/// Exit a parse tree produced by <see cref="MiniCSParser.listLiteral"/>.
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	void ExitListLiteral([NotNull] MiniCSParser.ListLiteralContext context);
+	/// <summary>
 	/// Enter a parse tree produced by <see cref="MiniCSParser.designator"/>.
 	/// </summary>
 	/// <param name="context">The parse tree.</param>
@@ -241,5 +325,25 @@ public interface IMiniCSParserListener : IParseTreeListener {
 	/// </summary>
 	/// <param name="context">The parse tree.</param>
 	void ExitIdent([NotNull] MiniCSParser.IdentContext context);
+	/// <summary>
+	/// Enter a parse tree produced by <see cref="MiniCSParser.caseBlock"/>.
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	void EnterCaseBlock([NotNull] MiniCSParser.CaseBlockContext context);
+	/// <summary>
+	/// Exit a parse tree produced by <see cref="MiniCSParser.caseBlock"/>.
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	void ExitCaseBlock([NotNull] MiniCSParser.CaseBlockContext context);
+	/// <summary>
+	/// Enter a parse tree produced by <see cref="MiniCSParser.usingDecl"/>.
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	void EnterUsingDecl([NotNull] MiniCSParser.UsingDeclContext context);
+	/// <summary>
+	/// Exit a parse tree produced by <see cref="MiniCSParser.usingDecl"/>.
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	void ExitUsingDecl([NotNull] MiniCSParser.UsingDeclContext context);
 }
 } // namespace generated.parser
