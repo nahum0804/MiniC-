@@ -33,12 +33,11 @@ public class SymbolTableVisitor : MiniCSParserBaseVisitor<object>
             VisitMethodDecl(mdc);
         }
 
-        foreach (var mdc in context.classDecl())
+        foreach (var cdc in context.classDecl())
         {
-            VisitClassDecl(mdc);
+            VisitClassDecl(cdc);
         }
-
-        Table.CloseScope();
+        
 
         return null;
     }
@@ -151,19 +150,19 @@ public class SymbolTableVisitor : MiniCSParserBaseVisitor<object>
     {
         Table.OpenScope(); 
 
-        foreach (var child in context.children)
+        foreach (var vdc in context.varDecl())
         {
-            switch (child)
-            {
-                case MiniCSParser.VarDeclContext vdc:
-                    VisitVarDecl(vdc);
-                    break;
-                case MiniCSParser.StatementContext stCtx:
-                    VisitStatement(stCtx);
-                    break;
-            }
+            Console.WriteLine($"  VarDecl: {vdc.GetText()}");
+            VisitVarDecl(vdc);
         }
         
+        foreach (var st in context.statement())
+        {
+            Console.WriteLine($" Statement: {st.GetText()}");
+            VisitStatement(st);
+        }
+        
+        Table.CloseScope();
         return null;
     }
 

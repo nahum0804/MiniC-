@@ -11,18 +11,35 @@ class Program
     {
         {
             const string inputText = """
-
-                                                     class Prueba {
-                                                         int x, y;
-                                                         void foo(int a) {
-                                                             int z;
-                                                             z = a + x;      // x ha sido declarado globalmente
-                                                             write(z, 10);
-                                                         }
-                                                         
-                                                         int j;
-                                                     }
-                                                 
+                                     class Prueba {
+                                         int x, y;
+                                         
+                                         void foo(int a) {
+                                             int z;                       
+                                             z = a + x;                  
+                                             
+                                             if (z > 10) {               
+                                                 int z;                  
+                                                 z = y;                   
+                                             }
+                                             
+                                             {
+                                                 int a;                   
+                                                 a = z;
+                                             }
+                                         }
+                                         
+                                         int j;
+                                         
+                                        
+                                         class Interna {
+                                             bool flag;
+                                             void bar() {
+                                                 int x;                   
+                                                 x = flag ? 1 : 0;
+                                             }
+                                         }
+                                     }
                                      """;
 
             var inputStream = new AntlrInputStream(inputText);

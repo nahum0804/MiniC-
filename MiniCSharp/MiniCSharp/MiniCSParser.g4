@@ -6,11 +6,14 @@ options {
 
 
 program             : usingDecl* CLASS ident BL ( varDecl | classDecl | methodDecl )* BR
-                    ;                    
+                    ;        
+                                
 varDecl             : type ident ( COMMA ident )* SEMICOLON
                     ;
+                    
 classDecl   	    : CLASS ident BL ( varDecl | methodDecl )* BR 
                     ;
+                    
 methodDecl  	    : ( type | VOID ) ident LEFTP ( formPars )? RIGHTP block
                     ;
 
@@ -40,22 +43,31 @@ statement           : designator ( ASSIGN expr | LEFTP ( actPars )? RIGHTP | ADD
                     | block
                     | SEMICOLON
                     ;
+                    
 block       	    : BL ( varDecl | statement )* BR
                     ;
+                    
 actPars     	    : expr ( COMMA expr )*
                     ;
+                    
 condition  	        : condTerm ( OR condTerm )*
                     ;
+                    
 condTerm    	    : condFact ( AND condFact )*
                     ;
+                    
 condFact    	    : expr relop expr
                     ;
+                    
 cast        	    : LEFTP type RIGHTP
                     ;
+                    
 expr        	    : ( BAR )?  ( cast )? term ( addop term )*
                     ;
+                    
 term        	    : factor ( mulop factor )*
                     ;
+                    
 factor     	        : designator ( LEFTP ( actPars )? RIGHTP )?
                     | NUMLIT
                     | CHARLIT
@@ -72,15 +84,21 @@ listLiteral         : LESS expr ( COMMA expr )* GREATER
                     
 designator  	    : ident ( DOT ident | SBL expr SBR )*
                     ;
+                    
 relop       	    : EQEQ | NOTEQ | GREATER | GREATEREQ | LESS | LESSEQ
                     ;
+                    
 addop       	    : PLUS | BAR
                     ;
+                    
 mulop       	    : MULT | DIV | MOD  
                     ;
+                    
 ident               : ID
                     ;
                     
-caseBlock           : CASE condition DOTS statement*;
+caseBlock           : CASE condition DOTS statement*
+                    ;
 
-usingDecl           : USING ident ( DOT ident )* SEMICOLON;
+usingDecl           : USING ident ( DOT ident )* SEMICOLON
+                    ;
