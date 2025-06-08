@@ -15,6 +15,7 @@ class Program
                                      class TestStmts {
                                          List<int> nums;
                                          List<string> names;
+                                         
                                          int x;
                                          bool b;
                                          string s;
@@ -22,6 +23,8 @@ class Program
                                          int main(int p) {
                                              nums = <1,2,3>;
                                              names = <"Hola mundo", "Hola mundo2">;
+                                             List<bool> bools;
+                                             List<char> chars;
                                              int w;
                                              x = 42;
                                              s = "Hola";
@@ -38,6 +41,8 @@ class Program
                                          int e; 
                                          
                                          bool analysis(string u) {
+                                            bools = <true,false,false>;
+                                            chars = <'A','B','C'>;
                                             int i; 
                                             string l;
                                             b = true;
@@ -80,9 +85,9 @@ class Program
 
             var tree = parser.program();
 
-            Console.WriteLine("=== Árbol sintáctico ===");
-            MiniCSharp.checker.DisplayTree.PrintTree(tree);
-            Console.WriteLine("========================\n");
+            //Console.WriteLine("=== Árbol sintáctico ===");
+            //DisplayTree.PrintTree(tree);
+            //Console.WriteLine("========================\n");
 
             // MiniCSChecker
             var checker = new MiniCSChecker();
