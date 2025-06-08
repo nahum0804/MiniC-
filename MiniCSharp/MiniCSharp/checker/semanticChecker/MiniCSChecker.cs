@@ -12,6 +12,8 @@ namespace MiniCSharp.checker
 
         public IEnumerable<string> Errors   => _errors;
         public bool           HasErrors => _errors.Count > 0;
+        
+        private int _loopDepth = 0;
 
         private void Report(string msg, IToken tok)
         {
@@ -122,8 +124,10 @@ namespace MiniCSharp.checker
             int lhs = varSym.TypeTag;
             int rhs = (int)VisitExpr(ctx.expr());
             if (lhs != rhs)
-                Report($"Incompatibilidad de tipos en asignación (se esperaba {lhs}, vino {rhs})",
-                       ctx.ASSIGN().Symbol);
+                Report(
+                    $"Incompatibilidad de tipos en asignación (se esperaba “{TypeTags.Name(lhs)}”, vino “{TypeTags.Name(rhs)}”)",
+                    ctx.ASSIGN().Symbol
+                );
         }
         return null;
     }
@@ -142,37 +146,39 @@ namespace MiniCSharp.checker
     
     public override object VisitForStatement(MiniCSParser.ForStatementContext ctx)
     {
-        var init = ctx.forInit();
-        if (init is MiniCSParser.InitAssignContext) {
-            Visit(init);  
-        }
+        _loopDepth++;
         
-        if (ctx.condition() != null) {
+        Visit(ctx.forInit());
+        
+        if (ctx.condition() != null)
+        {
             int condTag = (int)Visit(ctx.condition());
             if (condTag != TypeTags.Bool)
                 Report("Condición de FOR no booleana", ctx.FOR().Symbol);
         }
         
-        var upd = ctx.forUpdate();
-        if (upd is MiniCSParser.UpdateAssignContext) {
-            Visit(upd);  
-        }
+        Visit(ctx.forUpdate());
         
         Visit(ctx.statement());
+        _loopDepth--;
         return null;
     }
     
     public override object VisitWhileStatement(MiniCSParser.WhileStatementContext ctx)
     {
+        _loopDepth++;
         int condTag = (int)Visit(ctx.condition());
         if (condTag != TypeTags.Bool)
             Report("Condición de WHILE no booleana", ctx.WHILE().Symbol);
         Visit(ctx.statement());
+        _loopDepth--;
         return null;
     }
     
     public override object VisitBreakStatement(MiniCSParser.BreakStatementContext ctx)
     {
+        if (_loopDepth == 0)
+            Report("Break fuera de bucle", ctx.BREAK().Symbol);
         return null;
     }
     
@@ -218,36 +224,56 @@ namespace MiniCSharp.checker
     {
         return null;
     }
-        public override object VisitExpr(MiniCSParser.ExprContext ctx)
+    public override object VisitExpr(MiniCSParser.ExprContext ctx)
+    {
+        if (ctx == null || ctx.term().Length == 0)
+            return TypeTags.Unknown;
+
+        int type = (int)VisitTerm(ctx.term(0));
+        
+        for (int i = 1; i < ctx.term().Length; i++)
         {
-            int type = (int)VisitTerm(ctx.term(0));
-            for (int i = 1; i < ctx.term().Length; i++)
-            {
-                string op = ctx.addop(i - 1).GetText();
-                int rhs = (int)VisitTerm(ctx.term(i));
-                type = TypeChecker.Compatible(type, rhs, op);
-                if (type == TypeTags.Unknown)
-                    Report($"Operador '{op}' no válido entre tipos", ctx.addop(i - 1).Start);
-            }
-            return type;
+            var opNode = ctx.addop(i - 1);
+            if (opNode == null) continue;                
+            string op = opNode.GetText();
+
+            var rightTerm = ctx.term(i);
+            if (rightTerm == null) continue;
+
+            int rhs = (int)VisitTerm(rightTerm);
+            type = TypeChecker.Compatible(type, rhs, op);
+            if (type == TypeTags.Unknown)
+                Report($"Operador '{op}' no válido entre tipos", opNode.Start);
         }
 
-        public override object VisitTerm(MiniCSParser.TermContext ctx)
-        {
-            int type = (int)VisitFactor(ctx.factor(0));
-            for (int i = 1; i < ctx.factor().Length; i++)
-            {
-                string op = ctx.mulop(i - 1).GetText();
-                int rhs = (int)VisitFactor(ctx.factor(i));
-                type = TypeChecker.Compatible(type, rhs, op);
-                if (type == TypeTags.Unknown)
-                    Report($"Operador '{op}' no válido entre tipos", ctx.mulop(i - 1).Start);
-            }
-            return type;
-        }
+        return type;
+    }
 
+    public override object VisitTerm(MiniCSParser.TermContext ctx)
+    {
+        if (ctx == null || ctx.factor().Length == 0)
+            return TypeTags.Unknown;
+
+        int type = (int)VisitFactor(ctx.factor(0));
+        for (int i = 1; i < ctx.factor().Length; i++)
+        {
+            var opNode = ctx.mulop(i - 1);
+            if (opNode == null) continue;
+            string op = opNode.GetText();
+
+            var rightFactor = ctx.factor(i);
+            if (rightFactor == null) continue;
+
+            int rhs = (int)VisitFactor(rightFactor);
+            type = TypeChecker.Compatible(type, rhs, op);
+            if (type == TypeTags.Unknown)
+                Report($"Operador '{op}' no válido entre tipos", opNode.Start);
+        }
+        return type;
+    }
         public override object VisitFactor(MiniCSParser.FactorContext ctx)
         {
+            if (ctx.listLiteral() != null) return VisitListLiteral(ctx.listLiteral());
             if (ctx.NUMLIT() != null)    return TypeTags.Int;
             if (ctx.CHARLIT() != null)   return TypeTags.Char;
             if (ctx.STRINGLIT() != null) return TypeTags.String;
@@ -271,13 +297,23 @@ namespace MiniCSharp.checker
         
         public override object VisitCondFact(MiniCSParser.CondFactContext ctx)
         {
-            int left  = (int)Visit(ctx.expr(0));
-            int right = (int)Visit(ctx.expr(1));
-            string op = ctx.relop().GetText();
-
-            int result = TypeChecker.Compatible(left, right, op);
-            if (result != TypeTags.Bool)
-                Report($"Operador relacional '{op}' no válido entre tipos", ctx.relop().Start);
+            // si hay relop: expr relop expr
+            if (ctx.relop() != null)
+            {
+                int left  = (int)Visit(ctx.expr(0));
+                int right = (int)Visit(ctx.expr(1));
+                string op = ctx.relop().GetText();
+ 
+                int result = TypeChecker.Compatible(left, right, op);
+                if (result != TypeTags.Bool)
+                    Report($"Operador relacional '{op}' no válido entre tipos", ctx.relop().Start);
+            }
+            else
+            {
+                int tag = (int)Visit(ctx.expr(0));
+                if (tag != TypeTags.Bool)
+                    Report("Condición no booleana", ctx.expr(0).Start);
+            }
             return TypeTags.Bool;
         }
 
@@ -303,6 +339,19 @@ namespace MiniCSharp.checker
                     Report("Operador '&&' aplicado a no-bool", ctx.OR(i-1).Symbol);
             }
             return TypeTags.Bool;
+        }
+        
+        public override object VisitListLiteral(MiniCSParser.ListLiteralContext ctx)
+        {
+            int elemType = (int)VisitExpr(ctx.expr(0));
+            for (int i = 1; i < ctx.expr().Length; i++)
+            {
+                int t = (int)VisitExpr(ctx.expr(i));
+                if (t != elemType)
+                    Report("Elementos de lista con tipos distintos",
+                        ctx.expr(i).Start);
+            }
+            return TypeTags.ListOf(elemType);
         }
 
 

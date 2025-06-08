@@ -20,9 +20,10 @@ methodDecl  	    : ( type | VOID ) ident LEFTP ( formPars )? RIGHTP block
 formPars    	    : type ident ( COMMA type ident )* 
                     ;
                     
-type        	    : simpleType                           # simpletype
-                    | LIST LESS simpleType GREATER         # listOfSimple
-                    | ident ( SBL SBR )?                   # userTypeOrArray
+type
+                    : simpleType                          # simpletype
+                    | LIST LESS simpleType GREATER        # listOfSimple
+                    | ident ( SBL SBR )?                  # userTypeOrArray
                     ;
                     
 simpleType          : INT                                  # intType

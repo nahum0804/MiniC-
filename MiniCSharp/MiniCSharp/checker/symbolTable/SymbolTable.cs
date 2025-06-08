@@ -49,7 +49,7 @@ public class SymbolTable
             if (LookupInCurrentLevel(name) != null) return false;
 
             var sym = new VariableSymbol(token, typeTag, CurrentLevel, declCtx, isConstant);
-            _symbols.AddFirst(sym);
+            _symbols.AddLast(sym);
             _allSymbols.Add(sym);   
             return true;
         }
@@ -60,7 +60,7 @@ public class SymbolTable
             if (LookupInCurrentLevel(name) != null) return false;
 
             var sym = new MethodSymbol(token, returnTag, CurrentLevel, declCtx, paramTypeTags);
-            _symbols.AddFirst(sym);
+            _symbols.AddLast(sym);
             _allSymbols.Add(sym);    
             return true;
         }
@@ -83,38 +83,19 @@ public class SymbolTable
 
         private void DumpSym(Symbol sym)
         {
-            Console.Write($"Name: {sym.Token.Text}, Level: {sym.ScopeLevel}, TypeTag: {sym.TypeTag}");
-            string declaredType = "?";
-            switch (sym)
-            {
-                case VariableSymbol v:
-                    // declContext es VarDeclContext => declContext.type()
-                    if (v.DeclContext is MiniCSParser.VarDeclContext vdc)
-                        declaredType = vdc.type().GetText();
-                    break;
+            string typeName = TypeTags.Name(sym.TypeTag);
 
-                case MethodSymbol m:
-                    // declContext es MethodDeclContext
-                    if (m.DeclContext is MiniCSParser.MethodDeclContext mdc)
-                        declaredType = mdc.VOID() != null
-                            ? "void"
-                            : mdc.type().GetText();
-                    break;
-            }
-
-            Console.Write($", Type: {declaredType}");
-
-            // Si es método, imprimimos también la firma de parámetros
+            Console.Write($"Name: {sym.Token.Text}, Level: {sym.ScopeLevel}, Type: {typeName}");
+            
             if (sym is MethodSymbol ms && ms.DeclContext is MiniCSParser.MethodDeclContext mdCtx)
             {
                 var form = mdCtx.formPars();
                 var paramTypes = form != null
-                    ? form.type().Select(t => t.GetText())
+                    ? form.type().Select(t => TypeTags.Name(TypeTags.FromTypeName(t.GetText())))
                     : Enumerable.Empty<string>();
                 Console.Write($", Params=[{string.Join(",", paramTypes)}]");
             }
-
-            // Finalmente, si es variable, indicamos si es constante
+            
             if (sym is VariableSymbol vv)
                 Console.Write($", Var(isConst={vv.IsConstant})");
 

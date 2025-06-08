@@ -13,11 +13,15 @@ class Program
         {
             const string inputText = """
                                      class TestStmts {
+                                         List<int> nums;
+                                         List<string> names;
                                          int x;
                                          bool b;
                                          string s;
                                      
                                          int main(int p) {
+                                             nums = <1,2,3>;
+                                             names = <"Hola mundo", "Hola mundo2">;
                                              int w;
                                              x = 42;
                                              s = "Hola";
@@ -32,6 +36,33 @@ class Program
                                          }
                                          
                                          int e; 
+                                         
+                                         bool analysis(string u) {
+                                            int i; 
+                                            string l;
+                                            b = true;
+                                            for (i = 0; i < 10; i = i+1) {
+                                                char k;
+                                                l =  "For";
+                                                k = 'F';
+                                                write(i, 10);
+                                            }
+                                            
+                                            bool flag;
+                                            if (1 != 2) {
+                                                i = 1;
+                                            }
+                                            
+                                            while(1 < 10) {
+                                              i = 10; 
+                                              }
+                                              
+                                            return flag;
+                                         }
+                                         
+                                         void method(){
+                                            write(1, 10);
+                                         }
                                      }
                                      """;
 
