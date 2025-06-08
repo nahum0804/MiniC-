@@ -121,7 +121,6 @@ public class SymbolTableVisitor : MiniCSParserBaseVisitor<object>
                 Console.ResetColor();
             }
             
-            Table.OpenScope();
             
             if (formParsCtx != null)
             {
@@ -142,7 +141,6 @@ public class SymbolTableVisitor : MiniCSParserBaseVisitor<object>
             
             Visit(context.block());
             
-            Table.CloseScope();
             return null;
         }
 

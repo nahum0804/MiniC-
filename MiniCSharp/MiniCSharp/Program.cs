@@ -17,53 +17,21 @@ class Program
                                          bool b;
                                          string s;
                                      
-                                         void main() {
-                                             // 1) Asignación y uso de variables
+                                         int main(int p) {
+                                             int w;
                                              x = 42;
                                              s = "Hola";
-                                             
-                                             // 2) WRITE y READ (suponemos que READ siempre es válido semánticamente)
+     
                                              write(s, 10);
-                                             //read(x);  // descomentar para probar read
+                                             read(x);
                                      
-                                             // 3) IF / ELSE
                                              if (x > 0) 
                                                  x = x - 1;
                                              else 
                                                  x = x + 1;
-                                     
-                                             // 4) FOR (init; cond; post) cuerpo
-                                            /*for (x = 0; x < 5; x = x + 1) {
-                                                 write(x, 0);
-                                                 if (x == 3) break;
-                                             }
-                                     
-                                             // 5) WHILE
-                                             while (b) {
-                                                 x = x + 2;
-                                                 if (x > 10) break;
-                                             }
-                                     
-                                             // 6) SWITCH / CASE / DEFAULT
-                                             switch (x) {
-                                                 case 0:
-                                                     s = "cero";
-                                                     break;
-                                                 case 1:
-                                                     s = "uno";
-                                                     break;
-                                                 default:
-                                                     s = "otro";
-                                             }
-                                     
-                                             // 7) RETURN con y sin expresión
-                                             return;
                                          }
-                                     
-                                         int valor() {
-                                             return x * 2;
-                                             */
-                                         }
+                                         
+                                         int e; 
                                      }
                                      """;
 
