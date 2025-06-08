@@ -159,7 +159,7 @@ public class SymbolTableVisitor : MiniCSParserBaseVisitor<object>
         foreach (var st in context.statement())
         {
             Console.WriteLine($" Statement: {st.GetText()}");
-            VisitStatement(st);
+            Visit(st);
         }
         
         Table.CloseScope();
@@ -179,28 +179,6 @@ public class SymbolTableVisitor : MiniCSParserBaseVisitor<object>
 
         return null;
     }
-
-
-    public override object VisitStatement(MiniCSParser.StatementContext context)
-    {
-        if (context.designator() != null)
-        {
-            VisitDesignator(context.designator());
-            // SE PUEDE CHEQUEAR QUE EL TIPO DE EXPR SEA COMPATIBLE
-            if (context.expr() != null)
-                VisitExpr(context.expr());
-        }
-
-        //Chequear expressions
-        if (context.WRITE() != null && context.expr() != null)
-        {
-            VisitExpr(context.expr());
-        }
-
-        //Semantic extra para if,while,for
-        return null;
-    }
-
 
     public override object VisitExpr(MiniCSParser.ExprContext context)
     {

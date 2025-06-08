@@ -166,15 +166,185 @@ public interface IMiniCSParserListener : IParseTreeListener {
 	/// <param name="context">The parse tree.</param>
 	void ExitStringType([NotNull] MiniCSParser.StringTypeContext context);
 	/// <summary>
-	/// Enter a parse tree produced by <see cref="MiniCSParser.statement"/>.
+	/// Enter a parse tree produced by the <c>assignStatement</c>
+	/// labeled alternative in <see cref="MiniCSParser.statement"/>.
 	/// </summary>
 	/// <param name="context">The parse tree.</param>
-	void EnterStatement([NotNull] MiniCSParser.StatementContext context);
+	void EnterAssignStatement([NotNull] MiniCSParser.AssignStatementContext context);
 	/// <summary>
-	/// Exit a parse tree produced by <see cref="MiniCSParser.statement"/>.
+	/// Exit a parse tree produced by the <c>assignStatement</c>
+	/// labeled alternative in <see cref="MiniCSParser.statement"/>.
 	/// </summary>
 	/// <param name="context">The parse tree.</param>
-	void ExitStatement([NotNull] MiniCSParser.StatementContext context);
+	void ExitAssignStatement([NotNull] MiniCSParser.AssignStatementContext context);
+	/// <summary>
+	/// Enter a parse tree produced by the <c>ifStatement</c>
+	/// labeled alternative in <see cref="MiniCSParser.statement"/>.
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	void EnterIfStatement([NotNull] MiniCSParser.IfStatementContext context);
+	/// <summary>
+	/// Exit a parse tree produced by the <c>ifStatement</c>
+	/// labeled alternative in <see cref="MiniCSParser.statement"/>.
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	void ExitIfStatement([NotNull] MiniCSParser.IfStatementContext context);
+	/// <summary>
+	/// Enter a parse tree produced by the <c>forStatement</c>
+	/// labeled alternative in <see cref="MiniCSParser.statement"/>.
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	void EnterForStatement([NotNull] MiniCSParser.ForStatementContext context);
+	/// <summary>
+	/// Exit a parse tree produced by the <c>forStatement</c>
+	/// labeled alternative in <see cref="MiniCSParser.statement"/>.
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	void ExitForStatement([NotNull] MiniCSParser.ForStatementContext context);
+	/// <summary>
+	/// Enter a parse tree produced by the <c>whileStatement</c>
+	/// labeled alternative in <see cref="MiniCSParser.statement"/>.
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	void EnterWhileStatement([NotNull] MiniCSParser.WhileStatementContext context);
+	/// <summary>
+	/// Exit a parse tree produced by the <c>whileStatement</c>
+	/// labeled alternative in <see cref="MiniCSParser.statement"/>.
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	void ExitWhileStatement([NotNull] MiniCSParser.WhileStatementContext context);
+	/// <summary>
+	/// Enter a parse tree produced by the <c>breakStatement</c>
+	/// labeled alternative in <see cref="MiniCSParser.statement"/>.
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	void EnterBreakStatement([NotNull] MiniCSParser.BreakStatementContext context);
+	/// <summary>
+	/// Exit a parse tree produced by the <c>breakStatement</c>
+	/// labeled alternative in <see cref="MiniCSParser.statement"/>.
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	void ExitBreakStatement([NotNull] MiniCSParser.BreakStatementContext context);
+	/// <summary>
+	/// Enter a parse tree produced by the <c>returnStatement</c>
+	/// labeled alternative in <see cref="MiniCSParser.statement"/>.
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	void EnterReturnStatement([NotNull] MiniCSParser.ReturnStatementContext context);
+	/// <summary>
+	/// Exit a parse tree produced by the <c>returnStatement</c>
+	/// labeled alternative in <see cref="MiniCSParser.statement"/>.
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	void ExitReturnStatement([NotNull] MiniCSParser.ReturnStatementContext context);
+	/// <summary>
+	/// Enter a parse tree produced by the <c>readStatement</c>
+	/// labeled alternative in <see cref="MiniCSParser.statement"/>.
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	void EnterReadStatement([NotNull] MiniCSParser.ReadStatementContext context);
+	/// <summary>
+	/// Exit a parse tree produced by the <c>readStatement</c>
+	/// labeled alternative in <see cref="MiniCSParser.statement"/>.
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	void ExitReadStatement([NotNull] MiniCSParser.ReadStatementContext context);
+	/// <summary>
+	/// Enter a parse tree produced by the <c>writeStatement</c>
+	/// labeled alternative in <see cref="MiniCSParser.statement"/>.
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	void EnterWriteStatement([NotNull] MiniCSParser.WriteStatementContext context);
+	/// <summary>
+	/// Exit a parse tree produced by the <c>writeStatement</c>
+	/// labeled alternative in <see cref="MiniCSParser.statement"/>.
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	void ExitWriteStatement([NotNull] MiniCSParser.WriteStatementContext context);
+	/// <summary>
+	/// Enter a parse tree produced by the <c>switchStatement</c>
+	/// labeled alternative in <see cref="MiniCSParser.statement"/>.
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	void EnterSwitchStatement([NotNull] MiniCSParser.SwitchStatementContext context);
+	/// <summary>
+	/// Exit a parse tree produced by the <c>switchStatement</c>
+	/// labeled alternative in <see cref="MiniCSParser.statement"/>.
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	void ExitSwitchStatement([NotNull] MiniCSParser.SwitchStatementContext context);
+	/// <summary>
+	/// Enter a parse tree produced by the <c>blackStatement</c>
+	/// labeled alternative in <see cref="MiniCSParser.statement"/>.
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	void EnterBlackStatement([NotNull] MiniCSParser.BlackStatementContext context);
+	/// <summary>
+	/// Exit a parse tree produced by the <c>blackStatement</c>
+	/// labeled alternative in <see cref="MiniCSParser.statement"/>.
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	void ExitBlackStatement([NotNull] MiniCSParser.BlackStatementContext context);
+	/// <summary>
+	/// Enter a parse tree produced by the <c>emptyStatement</c>
+	/// labeled alternative in <see cref="MiniCSParser.statement"/>.
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	void EnterEmptyStatement([NotNull] MiniCSParser.EmptyStatementContext context);
+	/// <summary>
+	/// Exit a parse tree produced by the <c>emptyStatement</c>
+	/// labeled alternative in <see cref="MiniCSParser.statement"/>.
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	void ExitEmptyStatement([NotNull] MiniCSParser.EmptyStatementContext context);
+	/// <summary>
+	/// Enter a parse tree produced by the <c>initEmpty</c>
+	/// labeled alternative in <see cref="MiniCSParser.forInit"/>.
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	void EnterInitEmpty([NotNull] MiniCSParser.InitEmptyContext context);
+	/// <summary>
+	/// Exit a parse tree produced by the <c>initEmpty</c>
+	/// labeled alternative in <see cref="MiniCSParser.forInit"/>.
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	void ExitInitEmpty([NotNull] MiniCSParser.InitEmptyContext context);
+	/// <summary>
+	/// Enter a parse tree produced by the <c>initAssign</c>
+	/// labeled alternative in <see cref="MiniCSParser.forInit"/>.
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	void EnterInitAssign([NotNull] MiniCSParser.InitAssignContext context);
+	/// <summary>
+	/// Exit a parse tree produced by the <c>initAssign</c>
+	/// labeled alternative in <see cref="MiniCSParser.forInit"/>.
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	void ExitInitAssign([NotNull] MiniCSParser.InitAssignContext context);
+	/// <summary>
+	/// Enter a parse tree produced by the <c>updateEmpty</c>
+	/// labeled alternative in <see cref="MiniCSParser.forUpdate"/>.
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	void EnterUpdateEmpty([NotNull] MiniCSParser.UpdateEmptyContext context);
+	/// <summary>
+	/// Exit a parse tree produced by the <c>updateEmpty</c>
+	/// labeled alternative in <see cref="MiniCSParser.forUpdate"/>.
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	void ExitUpdateEmpty([NotNull] MiniCSParser.UpdateEmptyContext context);
+	/// <summary>
+	/// Enter a parse tree produced by the <c>updateAssign</c>
+	/// labeled alternative in <see cref="MiniCSParser.forUpdate"/>.
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	void EnterUpdateAssign([NotNull] MiniCSParser.UpdateAssignContext context);
+	/// <summary>
+	/// Exit a parse tree produced by the <c>updateAssign</c>
+	/// labeled alternative in <see cref="MiniCSParser.forUpdate"/>.
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	void ExitUpdateAssign([NotNull] MiniCSParser.UpdateAssignContext context);
 	/// <summary>
 	/// Enter a parse tree produced by <see cref="MiniCSParser.block"/>.
 	/// </summary>

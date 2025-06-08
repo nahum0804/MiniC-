@@ -5,19 +5,19 @@ options {
 }
 
 
-program             : usingDecl* CLASS ident BL ( varDecl | classDecl | methodDecl )* BR
-                    ;        
+program             : usingDecl* CLASS ident BL ( varDecl | classDecl | methodDecl )* BR       
+                    ;    
                                 
-varDecl             : type ident ( COMMA ident )* SEMICOLON
+varDecl             : type ident ( COMMA ident )* SEMICOLON                                  
                     ;
                     
 classDecl   	    : CLASS ident BL ( varDecl | methodDecl )* BR 
                     ;
                     
-methodDecl  	    : ( type | VOID ) ident LEFTP ( formPars )? RIGHTP block
+methodDecl  	    : ( type | VOID ) ident LEFTP ( formPars )? RIGHTP block  
                     ;
 
-formPars    	    : type ident ( COMMA type ident )*
+formPars    	    : type ident ( COMMA type ident )* 
                     ;
                     
 type        	    : simpleType                           # simpletype
@@ -31,41 +31,49 @@ simpleType          : INT                                  # intType
                     | STRING_TYPE                          # stringType
                     ;
                     
-statement           : designator ( ASSIGN expr | LEFTP ( actPars )? RIGHTP | ADD | SUB ) SEMICOLON
-            	    | IF LEFTP condition RIGHTP statement ( ELSE statement )?
-            	    | FOR LEFTP expr SEMICOLON ( condition )? SEMICOLON ( statement )? RIGHTP statement
-            	    | WHILE LEFTP condition RIGHTP statement
-                    | BREAK SEMICOLON
-                    | RETURN ( expr )?  SEMICOLON
-                    | READ LEFTP designator RIGHTP SEMICOLON
-                    | WRITE LEFTP expr ( COMMA NUMLIT )? RIGHTP SEMICOLON
-                    | SWITCH LEFTP expr RIGHTP BL  caseBlock* SBL DEFAULT DOTS statement* SBR BR SEMICOLON
-                    | block
-                    | SEMICOLON
+statement           : designator ( ASSIGN expr | LEFTP ( actPars )? RIGHTP | ADD | SUB ) SEMICOLON          #assignStatement
+            	    | IF LEFTP condition RIGHTP statement ( ELSE statement )?                               #ifStatement
+            	    | FOR LEFTP forInit  SEMICOLON ( condition )? SEMICOLON ( forUpdate )? RIGHTP statement     #forStatement
+            	    | WHILE LEFTP condition RIGHTP statement                                                #whileStatement
+                    | BREAK SEMICOLON                                                                       #breakStatement
+                    | RETURN ( expr )?  SEMICOLON                                                           #returnStatement
+                    | READ LEFTP designator RIGHTP SEMICOLON                                                #readStatement
+                    | WRITE LEFTP expr ( COMMA NUMLIT )? RIGHTP SEMICOLON                                   #writeStatement
+                    | SWITCH LEFTP expr RIGHTP BL  caseBlock* SBL DEFAULT COLON statement* SBR BR SEMICOLON #switchStatement
+                    | block                                                                                 #blackStatement
+                    | SEMICOLON                                                                             #emptyStatement
                     ;
                     
-block       	    : BL ( varDecl | statement )* BR
+forInit             :             #initEmpty
+                    | designator ASSIGN expr    #initAssign
                     ;
                     
-actPars     	    : expr ( COMMA expr )*
+forUpdate           :             #updateEmpty
+                    | designator ASSIGN expr    #updateAssign
                     ;
                     
-condition  	        : condTerm ( OR condTerm )*
+block       	    : BL ( varDecl | statement )* BR    
                     ;
                     
-condTerm    	    : condFact ( AND condFact )*
+actPars     	    : expr ( COMMA expr )*              
                     ;
                     
-condFact    	    : expr relop expr
+condition  	        : condTerm ( OR condTerm )*         
                     ;
                     
-cast        	    : LEFTP type RIGHTP
+condTerm    	    : condFact ( AND condFact )*       
                     ;
                     
-expr        	    : ( BAR )?  ( cast )? term ( addop term )*
+condFact    	    : expr relop expr                  
                     ;
                     
-term        	    : factor ( mulop factor )*
+cast        	    : LEFTP type RIGHTP               
+                    ;
+                    
+expr        	    : ( BAR )?  ( cast )? term ( addop term )*  
+                    ;
+                    
+term        	    : factor ( mulop factor )*          
                     ;
                     
 factor     	        : designator ( LEFTP ( actPars )? RIGHTP )?
@@ -79,7 +87,7 @@ factor     	        : designator ( LEFTP ( actPars )? RIGHTP )?
                     | listLiteral
                     ;   
                     
-listLiteral         : LESS expr ( COMMA expr )* GREATER
+listLiteral         : LESS expr ( COMMA expr )* GREATER  
                     ;
                     
 designator  	    : ident ( DOT ident | SBL expr SBR )*
@@ -97,7 +105,7 @@ mulop       	    : MULT | DIV | MOD
 ident               : ID
                     ;
                     
-caseBlock           : CASE condition DOTS statement*
+caseBlock           : CASE condition COLON statement*
                     ;
 
 usingDecl           : USING ident ( DOT ident )* SEMICOLON
