@@ -63,17 +63,159 @@ public interface IMiniCSParserVisitor<Result> : IParseTreeVisitor<Result> {
 	/// <return>The visitor result.</return>
 	Result VisitFormPars([NotNull] MiniCSParser.FormParsContext context);
 	/// <summary>
-	/// Visit a parse tree produced by <see cref="MiniCSParser.type"/>.
+	/// Visit a parse tree produced by the <c>simpletype</c>
+	/// labeled alternative in <see cref="MiniCSParser.type"/>.
 	/// </summary>
 	/// <param name="context">The parse tree.</param>
 	/// <return>The visitor result.</return>
-	Result VisitType([NotNull] MiniCSParser.TypeContext context);
+	Result VisitSimpletype([NotNull] MiniCSParser.SimpletypeContext context);
 	/// <summary>
-	/// Visit a parse tree produced by <see cref="MiniCSParser.statement"/>.
+	/// Visit a parse tree produced by the <c>listOfSimple</c>
+	/// labeled alternative in <see cref="MiniCSParser.type"/>.
 	/// </summary>
 	/// <param name="context">The parse tree.</param>
 	/// <return>The visitor result.</return>
-	Result VisitStatement([NotNull] MiniCSParser.StatementContext context);
+	Result VisitListOfSimple([NotNull] MiniCSParser.ListOfSimpleContext context);
+	/// <summary>
+	/// Visit a parse tree produced by the <c>userTypeOrArray</c>
+	/// labeled alternative in <see cref="MiniCSParser.type"/>.
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	/// <return>The visitor result.</return>
+	Result VisitUserTypeOrArray([NotNull] MiniCSParser.UserTypeOrArrayContext context);
+	/// <summary>
+	/// Visit a parse tree produced by the <c>intType</c>
+	/// labeled alternative in <see cref="MiniCSParser.simpleType"/>.
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	/// <return>The visitor result.</return>
+	Result VisitIntType([NotNull] MiniCSParser.IntTypeContext context);
+	/// <summary>
+	/// Visit a parse tree produced by the <c>charType</c>
+	/// labeled alternative in <see cref="MiniCSParser.simpleType"/>.
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	/// <return>The visitor result.</return>
+	Result VisitCharType([NotNull] MiniCSParser.CharTypeContext context);
+	/// <summary>
+	/// Visit a parse tree produced by the <c>boolType</c>
+	/// labeled alternative in <see cref="MiniCSParser.simpleType"/>.
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	/// <return>The visitor result.</return>
+	Result VisitBoolType([NotNull] MiniCSParser.BoolTypeContext context);
+	/// <summary>
+	/// Visit a parse tree produced by the <c>stringType</c>
+	/// labeled alternative in <see cref="MiniCSParser.simpleType"/>.
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	/// <return>The visitor result.</return>
+	Result VisitStringType([NotNull] MiniCSParser.StringTypeContext context);
+	/// <summary>
+	/// Visit a parse tree produced by the <c>assignStatement</c>
+	/// labeled alternative in <see cref="MiniCSParser.statement"/>.
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	/// <return>The visitor result.</return>
+	Result VisitAssignStatement([NotNull] MiniCSParser.AssignStatementContext context);
+	/// <summary>
+	/// Visit a parse tree produced by the <c>ifStatement</c>
+	/// labeled alternative in <see cref="MiniCSParser.statement"/>.
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	/// <return>The visitor result.</return>
+	Result VisitIfStatement([NotNull] MiniCSParser.IfStatementContext context);
+	/// <summary>
+	/// Visit a parse tree produced by the <c>forStatement</c>
+	/// labeled alternative in <see cref="MiniCSParser.statement"/>.
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	/// <return>The visitor result.</return>
+	Result VisitForStatement([NotNull] MiniCSParser.ForStatementContext context);
+	/// <summary>
+	/// Visit a parse tree produced by the <c>whileStatement</c>
+	/// labeled alternative in <see cref="MiniCSParser.statement"/>.
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	/// <return>The visitor result.</return>
+	Result VisitWhileStatement([NotNull] MiniCSParser.WhileStatementContext context);
+	/// <summary>
+	/// Visit a parse tree produced by the <c>breakStatement</c>
+	/// labeled alternative in <see cref="MiniCSParser.statement"/>.
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	/// <return>The visitor result.</return>
+	Result VisitBreakStatement([NotNull] MiniCSParser.BreakStatementContext context);
+	/// <summary>
+	/// Visit a parse tree produced by the <c>returnStatement</c>
+	/// labeled alternative in <see cref="MiniCSParser.statement"/>.
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	/// <return>The visitor result.</return>
+	Result VisitReturnStatement([NotNull] MiniCSParser.ReturnStatementContext context);
+	/// <summary>
+	/// Visit a parse tree produced by the <c>readStatement</c>
+	/// labeled alternative in <see cref="MiniCSParser.statement"/>.
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	/// <return>The visitor result.</return>
+	Result VisitReadStatement([NotNull] MiniCSParser.ReadStatementContext context);
+	/// <summary>
+	/// Visit a parse tree produced by the <c>writeStatement</c>
+	/// labeled alternative in <see cref="MiniCSParser.statement"/>.
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	/// <return>The visitor result.</return>
+	Result VisitWriteStatement([NotNull] MiniCSParser.WriteStatementContext context);
+	/// <summary>
+	/// Visit a parse tree produced by the <c>switchStatement</c>
+	/// labeled alternative in <see cref="MiniCSParser.statement"/>.
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	/// <return>The visitor result.</return>
+	Result VisitSwitchStatement([NotNull] MiniCSParser.SwitchStatementContext context);
+	/// <summary>
+	/// Visit a parse tree produced by the <c>blackStatement</c>
+	/// labeled alternative in <see cref="MiniCSParser.statement"/>.
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	/// <return>The visitor result.</return>
+	Result VisitBlackStatement([NotNull] MiniCSParser.BlackStatementContext context);
+	/// <summary>
+	/// Visit a parse tree produced by the <c>emptyStatement</c>
+	/// labeled alternative in <see cref="MiniCSParser.statement"/>.
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	/// <return>The visitor result.</return>
+	Result VisitEmptyStatement([NotNull] MiniCSParser.EmptyStatementContext context);
+	/// <summary>
+	/// Visit a parse tree produced by the <c>initEmpty</c>
+	/// labeled alternative in <see cref="MiniCSParser.forInit"/>.
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	/// <return>The visitor result.</return>
+	Result VisitInitEmpty([NotNull] MiniCSParser.InitEmptyContext context);
+	/// <summary>
+	/// Visit a parse tree produced by the <c>initAssign</c>
+	/// labeled alternative in <see cref="MiniCSParser.forInit"/>.
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	/// <return>The visitor result.</return>
+	Result VisitInitAssign([NotNull] MiniCSParser.InitAssignContext context);
+	/// <summary>
+	/// Visit a parse tree produced by the <c>updateEmpty</c>
+	/// labeled alternative in <see cref="MiniCSParser.forUpdate"/>.
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	/// <return>The visitor result.</return>
+	Result VisitUpdateEmpty([NotNull] MiniCSParser.UpdateEmptyContext context);
+	/// <summary>
+	/// Visit a parse tree produced by the <c>updateAssign</c>
+	/// labeled alternative in <see cref="MiniCSParser.forUpdate"/>.
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	/// <return>The visitor result.</return>
+	Result VisitUpdateAssign([NotNull] MiniCSParser.UpdateAssignContext context);
 	/// <summary>
 	/// Visit a parse tree produced by <see cref="MiniCSParser.block"/>.
 	/// </summary>
@@ -129,6 +271,12 @@ public interface IMiniCSParserVisitor<Result> : IParseTreeVisitor<Result> {
 	/// <return>The visitor result.</return>
 	Result VisitFactor([NotNull] MiniCSParser.FactorContext context);
 	/// <summary>
+	/// Visit a parse tree produced by <see cref="MiniCSParser.listLiteral"/>.
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	/// <return>The visitor result.</return>
+	Result VisitListLiteral([NotNull] MiniCSParser.ListLiteralContext context);
+	/// <summary>
 	/// Visit a parse tree produced by <see cref="MiniCSParser.designator"/>.
 	/// </summary>
 	/// <param name="context">The parse tree.</param>
@@ -158,5 +306,17 @@ public interface IMiniCSParserVisitor<Result> : IParseTreeVisitor<Result> {
 	/// <param name="context">The parse tree.</param>
 	/// <return>The visitor result.</return>
 	Result VisitIdent([NotNull] MiniCSParser.IdentContext context);
+	/// <summary>
+	/// Visit a parse tree produced by <see cref="MiniCSParser.caseBlock"/>.
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	/// <return>The visitor result.</return>
+	Result VisitCaseBlock([NotNull] MiniCSParser.CaseBlockContext context);
+	/// <summary>
+	/// Visit a parse tree produced by <see cref="MiniCSParser.usingDecl"/>.
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	/// <return>The visitor result.</return>
+	Result VisitUsingDecl([NotNull] MiniCSParser.UsingDeclContext context);
 }
 } // namespace generated.parser

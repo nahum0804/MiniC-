@@ -1,25 +1,31 @@
 {
   "format": 1,
   "restore": {
-    "E:\\Compiladores\\MiniC-\\MiniCSharp\\MiniCSharp\\MiniCSharp.csproj": {}
+    "C:\\Users\\n4hum\\OneDrive\\Escritorio\\Codigo-MainDir\\C#\\ProyectoCompi\\MiniCSharp\\MiniCSharp\\MiniCSharp.csproj": {}
   },
   "projects": {
-    "E:\\Compiladores\\MiniC-\\MiniCSharp\\MiniCSharp\\MiniCSharp.csproj": {
+    "C:\\Users\\n4hum\\OneDrive\\Escritorio\\Codigo-MainDir\\C#\\ProyectoCompi\\MiniCSharp\\MiniCSharp\\MiniCSharp.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "E:\\Compiladores\\MiniC-\\MiniCSharp\\MiniCSharp\\MiniCSharp.csproj",
+        "projectUniqueName": "C:\\Users\\n4hum\\OneDrive\\Escritorio\\Codigo-MainDir\\C#\\ProyectoCompi\\MiniCSharp\\MiniCSharp\\MiniCSharp.csproj",
         "projectName": "MiniCSharp",
-        "projectPath": "E:\\Compiladores\\MiniC-\\MiniCSharp\\MiniCSharp\\MiniCSharp.csproj",
-        "packagesPath": "C:\\Users\\greiv\\.nuget\\packages\\",
-        "outputPath": "E:\\Compiladores\\MiniC-\\MiniCSharp\\MiniCSharp\\obj\\",
+        "projectPath": "C:\\Users\\n4hum\\OneDrive\\Escritorio\\Codigo-MainDir\\C#\\ProyectoCompi\\MiniCSharp\\MiniCSharp\\MiniCSharp.csproj",
+        "packagesPath": "C:\\Users\\n4hum\\.nuget\\packages\\",
+        "outputPath": "C:\\Users\\n4hum\\OneDrive\\Escritorio\\Codigo-MainDir\\C#\\ProyectoCompi\\MiniCSharp\\MiniCSharp\\obj\\",
         "projectStyle": "PackageReference",
+        "fallbackFolders": [
+          "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages"
+        ],
         "configFilePaths": [
-          "C:\\Users\\greiv\\AppData\\Roaming\\NuGet\\NuGet.Config"
+          "C:\\Users\\n4hum\\AppData\\Roaming\\NuGet\\NuGet.Config",
+          "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.FallbackLocation.config",
+          "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.Offline.config"
         ],
         "originalTargetFrameworks": [
           "net9.0"
         ],
         "sources": {
+          "C:\\Program Files (x86)\\Microsoft SDKs\\NuGetPackages\\": {},
           "https://api.nuget.org/v3/index.json": {}
         },
         "frameworks": {
@@ -69,7 +75,7 @@
               "privateAssets": "all"
             }
           },
-          "runtimeIdentifierGraphPath": "C:\\Users\\greiv\\.dotnet\\sdk\\9.0.200/PortableRuntimeIdentifierGraph.json"
+          "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\9.0.203/PortableRuntimeIdentifierGraph.json"
         }
       }
     }

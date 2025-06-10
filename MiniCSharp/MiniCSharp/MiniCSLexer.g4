@@ -11,6 +11,11 @@ RETURN      : 'return';
 BREAK       : 'break';
 READ        : 'read';
 WRITE       : 'write';
+SWITCH      : 'switch';
+USING       : 'using';
+DEFAULT     : 'default';
+CASE        : 'case';
+LIST        : 'List'; 
 
 
 NEW         : 'new';
@@ -18,6 +23,10 @@ NEW         : 'new';
 TRUE        : 'true';
 FALSE       : 'false';
 
+INT           : 'int';
+CHAR          : 'char';
+BOOL          : 'bool';
+STRING_TYPE   : 'string';
 
 
 //symbols
@@ -46,8 +55,7 @@ GREATEREQ   : '>=';
 MULT        : '*';
 DIV         : '/';
 MOD         : '%';
-
-
+COLON        : ':';
 
 //other tokens
 NUMLIT: DIGIT DIGIT*;
@@ -61,5 +69,30 @@ fragment LETTER : 'a'..'z' | 'A'..'Z';
 fragment DIGIT : '0'..'9' ;
 
 //skip tokens
-LINE_COMMENT:   '//' .*? '\r'? '\n' -> skip ;
 WS : [ \t\n\r]+ -> skip ;
+
+
+
+LINE_COMMENT
+    : '//' ~[\r\n]* -> skip
+    ;
+
+BLOCK_COMMENT_START
+    : '/*' -> pushMode(COMMENT_MODE), skip
+    ;
+
+mode COMMENT_MODE;
+    NESTED_COMMENT_START
+        : '/*' -> pushMode(COMMENT_MODE)
+        ;
+    COMMENT_END
+        : '*/' -> popMode, skip
+        ;
+
+    COMMENT_WS
+        : [\t\r\n]+ -> skip
+        ;
+   
+    COMMENT_CHAR
+        : . -> skip
+        ;
