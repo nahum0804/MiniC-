@@ -1,0 +1,52 @@
+﻿class ValidListExample {
+    List<int> enteros;
+    List<char> letras;
+    List<bool> flags;
+    List<string> mensajes;
+    List<float> reales;
+
+    int x;
+    bool activo;
+    string saludo;
+    char letra;
+    float pi;
+
+    void main() {
+        enteros = <1, 2, 3, 4>;
+        letras = <'A', 'B', 'C'>;
+        flags = <true, false, true>;
+        mensajes = <"Hola", "Mundo", "MiniCSharp">;
+        reales = <3.14f, 2.71f, 0.0f>;
+
+        x = 10;
+        activo = true;
+        saludo = "Bienvenido";
+        letra = 'Z';
+        pi = 3.1415f;
+
+        read(x);
+        write(saludo);
+        write(x);
+
+        int i;
+        for (i = 0; i < 3; i = i + 1) {
+            write(enteros[i]);
+        }
+
+        if (activo == true) {
+            write("Sistema activo");
+        } else {
+            write("Sistema inactivo");
+        }
+
+        while (x > 0) {
+            x = x - 1;
+        }
+    }
+
+    float duplicar(float valor) {
+        float resultado;
+        resultado = valor * 2.0f;
+        return resultado;
+    }
+}

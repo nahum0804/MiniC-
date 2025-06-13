@@ -1,6 +1,6 @@
 ﻿using Antlr4.Runtime;
 
-namespace MiniCSharp.checker;
+namespace MiniCSharp.checker.symbolTable;
 
 public abstract class Symbol(IToken token, int typeTag, int scopeLevel, ParserRuleContext declContext)
 {

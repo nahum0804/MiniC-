@@ -3,102 +3,47 @@ using generated.parser;
 using MiniCSharp.checker;
 using MiniCSharp.domain.errors;
 using Antlr4.Runtime.Tree;
+using MiniCSharp.checker.semanticChecker;
+using MiniCSharp.checker.symbolTable;
 
 namespace MiniCSharp;
 
-class Program
+internal static class Program
 {
     private static void Main()
     {
         {
-            const string inputText = """
-                                     class TestStmts {
-                                         List<int> nums;
-                                         List<string> names;
-                                         
-                                         int x;
-                                         bool b;
-                                         string s;
-                                     
-                                         int main(int p) {
-                                             nums = <1,2,3>;
-                                             names = <"Hola mundo", "Hola mundo2">;
-                                             List<bool> bools;
-                                             List<char> chars;
-                                             int w;
-                                             x = 42;
-                                             s = "Hola";
-     
-                                             write(s, 10);
-                                             read(x);
-                                     
-                                             if (x > 0) 
-                                                 x = x - 1;
-                                             else 
-                                                 x = x + 1;
-                                         }
-                                         
-                                         int e; 
-                                         
-                                         bool analysis(string u) {
-                                            bools = <true,false,false>;
-                                            chars = <'A','B','C'>;
-                                            int i; 
-                                            string l;
-                                            b = true;
-                                            for (i = 0; i < 10; i = i+1) {
-                                                char k;
-                                                l =  "For";
-                                                k = 'F';
-                                                write(i, 10);
-                                            }
-                                            
-                                            bool flag;
-                                            if (1 != 2) {
-                                                i = 1;
-                                            }
-                                            
-                                            while(1 < 10) {
-                                              i = 10; 
-                                              }
-                                              
-                                            return flag;
-                                         }
-                                         
-                                         void method(){
-                                            write(1, 10);
-                                         }
-                                     }
-                                     """;
+            const string filePath = "Test.txt";
 
-            // Arbol sintáctico
+            if (!File.Exists(filePath))
+            {
+                Console.WriteLine($"Archivo no encontrado: {Path.GetFullPath(filePath)}");
+                return;
+            }
+
+            var inputText = File.ReadAllText(filePath);
+
             var inputStream = new AntlrInputStream(inputText);
             var lexer = new MiniCSLexer(inputStream);
-            lexer.RemoveErrorListeners();
-            lexer.AddErrorListener(new LexerErrorListener());
-
             var tokens = new CommonTokenStream(lexer);
-
             var parser = new MiniCSParser(tokens);
-            parser.RemoveErrorListeners();
-            parser.AddErrorListener(new ParserErrorListener());
-
             var tree = parser.program();
 
-            //Console.WriteLine("=== Árbol sintáctico ===");
-            //DisplayTree.PrintTree(tree);
-            //Console.WriteLine("========================\n");
-
-            // MiniCSChecker
-            var checker = new MiniCSChecker();
+            // Generar tabla de símbolos
+            var symbolTableBuilder = new SymbolTableVisitor();
+            symbolTableBuilder.Visit(tree);
+            Console.WriteLine("----- SÍMBOLOS ACTIVOS -----");
+            symbolTableBuilder.Table.PrintActive();
+            // Usar la tabla en el checker
+            var checker = new MiniCsChecker(symbolTableBuilder.Table);
             checker.Visit(tree);
-            
+
             //Tabla de simbolos
             //Console.WriteLine("=== TABLA DE SÍMBOLOS ACTIVOS ===");
             //checker.Table.PrintActive();
-            
+
             checker.Table.Print();
-            
+
             if (checker.HasErrors)
             {
                 Console.ForegroundColor = ConsoleColor.Red;
@@ -113,10 +58,9 @@ class Program
                 Console.WriteLine("Compiled Successfully - Happy Coding :)");
                 Console.ResetColor();
             }
-            
+
             Console.WriteLine("\n--- Fin del análisis semántico ---");
             Console.ReadKey();
         }
-        
     }
 }

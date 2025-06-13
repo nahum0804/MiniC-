@@ -1,7 +1,7 @@
 ﻿using Antlr4.Runtime;
 using generated.parser;
 
-namespace MiniCSharp.checker;
+namespace MiniCSharp.checker.symbolTable;
 
 public class SymbolTable
 {
@@ -65,6 +65,18 @@ public class SymbolTable
             return true;
         }
         
+        public bool InsertClass(IToken token, ParserRuleContext declCtx)
+        {
+            var name = token.Text;
+            if (LookupInCurrentLevel(name) != null) return false;
+
+            var sym = new ClassSymbol(token, TypeTags.Class, CurrentLevel, declCtx);
+            _symbols.AddLast(sym);
+            _allSymbols.Add(sym);
+            return true;
+        }
+
+        
         public void PrintActive()
         {
             Console.WriteLine($"----- SÍMBOLOS ACTIVOS (nivel actual = {CurrentLevel}) ------");
@@ -83,21 +95,28 @@ public class SymbolTable
 
         private void DumpSym(Symbol sym)
         {
-            string typeName = TypeTags.Name(sym.TypeTag);
+            var typeName = TypeTags.Name(sym.TypeTag);
 
             Console.Write($"Name: {sym.Token.Text}, Level: {sym.ScopeLevel}, Type: {typeName}");
             
-            if (sym is MethodSymbol ms && ms.DeclContext is MiniCSParser.MethodDeclContext mdCtx)
+            switch (sym)
             {
-                var form = mdCtx.formPars();
-                var paramTypes = form != null
-                    ? form.type().Select(t => TypeTags.Name(TypeTags.FromTypeName(t.GetText())))
-                    : Enumerable.Empty<string>();
-                Console.Write($", Params=[{string.Join(",", paramTypes)}]");
+                case MethodSymbol ms when ms.DeclContext is MiniCSParser.MethodDeclContext mdCtx:
+                {
+                    var form = mdCtx.formPars();
+                    var paramTypes = form != null
+                        ? form.type().Select(t => TypeTags.Name(TypeTags.FromTypeName(t.GetText())))
+                        : Enumerable.Empty<string>();
+                    Console.Write($", Params=[{string.Join(",", paramTypes)}]");
+                    break;
+                }
+                case VariableSymbol vv:
+                    Console.Write($", Var(isConst={vv.IsConstant})");
+                    break;
+                case ClassSymbol:
+                    Console.Write(", Class");
+                    break;
             }
-            
-            if (sym is VariableSymbol vv)
-                Console.Write($", Var(isConst={vv.IsConstant})");
 
             Console.WriteLine();
         }

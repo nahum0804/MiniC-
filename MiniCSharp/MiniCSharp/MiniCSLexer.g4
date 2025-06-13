@@ -27,7 +27,7 @@ INT           : 'int';
 CHAR          : 'char';
 BOOL          : 'bool';
 STRING_TYPE   : 'string';
-
+FLOAT         : 'float';
 
 //symbols
 BL          : '{';
@@ -58,8 +58,8 @@ MOD         : '%';
 COLON        : ':';
 
 //other tokens
+FLOATLIT: DIGIT+ '.' DIGIT+ [fF]? ;
 NUMLIT: DIGIT DIGIT*;
-FLOATLIT: DIGIT+ '.' DIGIT+;
 CHARLIT: '\'' (ESC_SEQ | .) '\'';
 STRINGLIT: '"' (ESC_SEQ | ~["\\])* '"';
 ID: ('_'|LETTER) (LETTER|DIGIT|'.')*;

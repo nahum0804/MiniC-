@@ -30,6 +30,7 @@ simpleType          : INT                                  # intType
                     | CHAR                                 # charType
                     | BOOL                                 # boolType
                     | STRING_TYPE                          # stringType
+                    | FLOAT                                # floatType
                     ;
                     
 statement           : designator ( ASSIGN expr | LEFTP ( actPars )? RIGHTP | ADD | SUB ) SEMICOLON          #assignStatement
@@ -77,8 +78,10 @@ expr        	    : ( BAR )?  ( cast )? term ( addop term )*
 term        	    : factor ( mulop factor )*          
                     ;
                     
-factor     	        : designator ( LEFTP ( actPars )? RIGHTP )?
+factor
+                    : designator ( LEFTP ( actPars )? RIGHTP )?
                     | NUMLIT
+                    | FLOATLIT                
                     | CHARLIT
                     | STRINGLIT
                     | TRUE
@@ -86,7 +89,7 @@ factor     	        : designator ( LEFTP ( actPars )? RIGHTP )?
                     | NEW ident
                     | LEFTP expr RIGHTP
                     | listLiteral
-                    ;   
+                    ;
                     
 listLiteral         : LESS expr ( COMMA expr )* GREATER  
                     ;

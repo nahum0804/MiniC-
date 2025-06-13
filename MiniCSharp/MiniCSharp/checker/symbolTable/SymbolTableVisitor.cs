@@ -1,243 +1,142 @@
-﻿using Antlr4.Runtime;
+﻿using System;
+using System.Collections.Generic;
+using Antlr4.Runtime;
+using Antlr4.Runtime.Misc;
 using generated.parser;
 
-namespace MiniCSharp.checker;
-
-public class SymbolTableVisitor : MiniCSParserBaseVisitor<object>
+namespace MiniCSharp.checker.symbolTable
 {
-    public SymbolTable Table { get; } = new SymbolTable();
-
-
-    public override object VisitProgram(MiniCSParser.ProgramContext context)
+    public class SymbolTableVisitor : MiniCSParserBaseVisitor<object>
     {
-        Table.OpenScope();
+        public SymbolTable Table { get; } = new SymbolTable();
 
-        var classToken = context.ident().Start;
-        if (!Table.InsertVariable(classToken, typeTag: -2, isConstant: true, context))
+        private void ReportError(string msg, IToken tok)
         {
             Console.ForegroundColor = ConsoleColor.Red;
-            Console.WriteLine(
-                $"Error semántico: clase '{classToken.Text}' redeclarada en el mismo scope (línea {classToken.Line}).");
+            Console.WriteLine($"Error semántico: {msg} (línea {tok.Line}, col {tok.Column})");
             Console.ResetColor();
         }
 
-        Table.OpenScope();
-
-        foreach (var vdc in context.varDecl())
+        private int GetTypeTag(string typeName, IToken tok)
         {
-            VisitVarDecl(vdc);
+            var tag = TypeTags.FromTypeName(typeName);
+            if (tag == TypeTags.Unknown)
+                ReportError($"Tipo '{typeName}' desconocido", tok);
+            return tag;
         }
 
-        foreach (var mdc in context.methodDecl())
+        // 1) Programa: abre scope global, registra la clase principal y recorre sus miembros
+        public override object VisitProgram(MiniCSParser.ProgramContext ctx)
         {
-            VisitMethodDecl(mdc);
-        }
+            // 1) Ámbito global
+            Table.OpenScope();
 
-        foreach (var cdc in context.classDecl())
-        {
-            VisitClassDecl(cdc);
-        }
-        
+            // 2) Ámbito de la clase
+            Table.OpenScope();
 
-        return null;
-    }
+            // 3) Inserta la clase principal
+            var classTok = ctx.ident().Start;
+            if (!Table.InsertClass(classTok, ctx))
+                ReportError($"Clase '{classTok.Text}' redeclarada", classTok);
 
+            // 4) Campos y miembros
+            foreach (var vd in ctx.varDecl())    VisitVarDecl(vd);
+            foreach (var cd in ctx.classDecl())  VisitClassDecl(cd);
+            foreach (var md in ctx.methodDecl()) VisitMethodDecl(md);
 
-    public override object VisitVarDecl(MiniCSParser.VarDeclContext context)
-    {
-        var typeName = context.type().GetText();
-        var typeTag = GetTypeTag(typeName);
+            // <- NO cerrar aquí los scopes de clase ni global
 
-        foreach (var idCtx in context.ident())
-        {
-            var idToken = idCtx.Start;
-            var ok = Table.InsertVariable(idToken, typeTag, isConstant: false, context);
-            if (!ok)
-            {
-                Console.ForegroundColor = ConsoleColor.Red;
-                Console.WriteLine(
-                    $"Error semántico: variable '{idToken.Text}' redeclarada en el mismo scope (línea {idToken.Line}).");
-                Console.ResetColor();
-            }
-        }
-        return null;
-    }
-
-
-    public override object VisitClassDecl(MiniCSParser.ClassDeclContext context)
-    {
-        var classToken = context.ident().Start;
-        if (!Table.InsertVariable(classToken, typeTag: -2, isConstant: true, context))
-        {
-            Console.ForegroundColor = ConsoleColor.Red;
-            Console.WriteLine(
-                $"Error semántico: clase '{classToken.Text}' redeclarada en el mismo scope (línea {classToken.Line}).");
-            Console.ResetColor();
-        }
-        
-        Table.OpenScope();
-        
-        foreach (var fieldDecl in context.varDecl())
-        {
-            VisitVarDecl(fieldDecl);
-        }
-
-        foreach (var mtdDecl in context.methodDecl())
-        {
-            VisitMethodDecl(mtdDecl);
-        }
-
-        Table.CloseScope();
-
-        return null;
-    }
-
-    public override object VisitMethodDecl(MiniCSParser.MethodDeclContext context)
-        {
-            var methodName = context.ident().GetText();
-            int returnTypeTag = context.VOID() != null
-                ? -1
-                : GetTypeTag(context.type().GetText());
-            
-            var paramTypeTags = new List<int>();
-            var formParsCtx = context.formPars();
-            if (formParsCtx != null)
-            {
-                for (int i = 0; i < formParsCtx.ident().Length; i++)
-                {
-                    var ptype = formParsCtx.type(i).GetText();
-                    paramTypeTags.Add(GetTypeTag(ptype));
-                }
-            }
-
-           
-            var methodToken = context.ident().Start;
-            var okMethod = Table.InsertMethod(methodToken, returnTypeTag, paramTypeTags, context);
-            if (!okMethod)
-            {
-                Console.ForegroundColor = ConsoleColor.Red;
-                Console.WriteLine(
-                    $"Error semántico: método '{methodName}' redeclarado en el mismo scope (línea {methodToken.Line}).");
-                Console.ResetColor();
-            }
-            
-            
-            if (formParsCtx != null)
-            {
-                for (int i = 0; i < formParsCtx.ident().Length; i++)
-                {
-                    var pTok = formParsCtx.ident(i).Start;
-                    var pTypeTag = GetTypeTag(formParsCtx.type(i).GetText());
-                    var okParam = Table.InsertVariable(pTok, pTypeTag, isConstant: false, formParsCtx);
-                    if (!okParam)
-                    {
-                        Console.ForegroundColor = ConsoleColor.Red;
-                        Console.WriteLine(
-                            $"Error semántico: parámetro '{pTok.Text}' duplicado en el método '{methodName}' (línea {pTok.Line}).");
-                        Console.ResetColor();
-                    }
-                }
-            }
-            
-            Visit(context.block());
-            
             return null;
         }
 
-    public override object VisitBlock(MiniCSParser.BlockContext context)
-    {
-        Table.OpenScope(); 
 
-        foreach (var vdc in context.varDecl())
+
+        // 2) Variables (campos de clase o locales)
+        public override object VisitVarDecl([NotNull] MiniCSParser.VarDeclContext ctx)
         {
-            Console.WriteLine($"  VarDecl: {vdc.GetText()}");
-            VisitVarDecl(vdc);
-        }
-        
-        foreach (var st in context.statement())
-        {
-            Console.WriteLine($" Statement: {st.GetText()}");
-            Visit(st);
-        }
-        
-        Table.CloseScope();
-        return null;
-    }
+            var typeTok = ctx.type().Start;
+            var tag = GetTypeTag(ctx.type().GetText(), typeTok);
 
-    public override object VisitDesignator(MiniCSParser.DesignatorContext context)
-    {
-        var name = context.ident(0).Start.Text;
-        var symbol = Table.Lookup(name);
-        if (symbol != null) return null;
-        var tok = context.ident(0).Start;
-        Console.ForegroundColor = ConsoleColor.Red;
-        Console.WriteLine(
-            $"Error semántico: símbolo '{name}' no declarado (línea {tok.Line}, columna {tok.Column}).");
-        Console.ResetColor();
-
-        return null;
-    }
-
-    public override object VisitExpr(MiniCSParser.ExprContext context)
-    {
-        for (var i = 0; i < context.term().Length; i++)
-        {
-            VisitTerm(context.term(i));
+            foreach (var idCtx in ctx.ident())
+            {
+                var tok = idCtx.Start;
+                if (!Table.InsertVariable(tok, tag, isConstant: false, ctx))
+                    ReportError($"Variable '{tok.Text}' redeclarada en el mismo scope", tok);
+            }
+            return null;
         }
 
-        return null;
-    }
-
-    public override object VisitTerm(MiniCSParser.TermContext context)
-    {
-        foreach (var fCtx in context.factor())
+        // 3) Clases anidadas (si aplica)
+        public override object VisitClassDecl([NotNull] MiniCSParser.ClassDeclContext ctx)
         {
-            VisitFactor(fCtx);
+            var tok = ctx.ident().Start;
+            var name = tok.Text;
+            if (!Table.InsertClass(tok, ctx))
+                ReportError($"Clase '{name}' redeclarada", tok);
+
+            Table.OpenScope();
+            foreach (var f in ctx.varDecl())    VisitVarDecl(f);
+            foreach (var m in ctx.methodDecl()) VisitMethodDecl(m);
+            Table.CloseScope();
+            return null;
         }
 
-        return null;
-    }
-
-
-    public override object VisitFactor(MiniCSParser.FactorContext context)
-    {
-        if (context.designator() != null)
+        // 4) Métodos: firma + parámetros + cuerpo
+        public override object VisitMethodDecl([NotNull] MiniCSParser.MethodDeclContext ctx)
         {
-            VisitDesignator(context.designator());
-            if (context.LEFTP() != null && context.actPars() != null)
-                VisitActPars(context.actPars());
+            var tok = ctx.ident().Start;
+            var methodName = tok.Text;
+
+            // Tipo de retorno
+            var returnTag = ctx.VOID() != null
+                ? TypeTags.Void
+                : GetTypeTag(ctx.type().GetText(), ctx.type().Start);
+
+            // Lista de tipos de parámetros
+            var paramTags = new List<int>();
+            if (ctx.formPars() != null)
+            {
+                for (int i = 0; i < ctx.formPars().ident().Length; i++)
+                {
+                    var pTypeCtx = ctx.formPars().type(i);
+                    paramTags.Add(GetTypeTag(pTypeCtx.GetText(), pTypeCtx.Start));
+                }
+            }
+
+            // Inserta el método
+            if (!Table.InsertMethod(tok, returnTag, paramTags, ctx))
+                ReportError($"Método '{methodName}' redeclarado", tok);
+
+
+            // Parámetros
+            if (ctx.formPars() != null)
+            {
+                for (int i = 0; i < ctx.formPars().ident().Length; i++)
+                {
+                    var idTok = ctx.formPars().ident(i).Start;
+                    var tag   = paramTags[i];
+                    if (!Table.InsertVariable(idTok, tag, isConstant: false, ctx.formPars()))
+                        ReportError($"Parámetro '{idTok.Text}' duplicado", idTok);
+                }
+            }
+
+            Visit(ctx.block());
+            return null;
         }
-        else if (context.LEFTP() != null && context.expr() != null && context.RIGHTP() != null)
+
+        // 5) Bloques: abrir/cerrar scope e insertar variables locales
+        public override object VisitBlock([NotNull] MiniCSParser.BlockContext ctx)
         {
-            VisitExpr(context.expr());
+
+            // Variables locales
+            foreach (var v in ctx.varDecl())
+                VisitVarDecl(v);
+
+            // Resto de statements
+            foreach (var st in ctx.statement())
+                Visit(st);
+
+            return null;
         }
-        else if (context.NEW() != null && context.ident() != null)
-        {
-            //Chequear que el tipo este declarado
-        }
-
-        return null;
-    }
-
-
-    public override object VisitActPars(MiniCSParser.ActParsContext context)
-    {
-        foreach (var eCtx in context.expr())
-        {
-            VisitExpr(eCtx);
-        }
-
-        return null;
-    }
-
-    private static int GetTypeTag(string typeName)
-    {
-        return typeName switch
-        {
-            "int" => 0,
-            "char" => 1,
-            "bool" => 2,
-            _ => -999
-        };
     }
 }
