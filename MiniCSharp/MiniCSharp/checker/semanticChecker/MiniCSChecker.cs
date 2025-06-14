@@ -1,6 +1,6 @@
 ﻿using Antlr4.Runtime;
-using generated.parser;
 using MiniCSharp.checker.symbolTable;
+using parser;
 
 namespace MiniCSharp.checker.semanticChecker
 {
@@ -19,41 +19,16 @@ namespace MiniCSharp.checker.semanticChecker
             _errors.Add($"Error semántico: {msg} '{tok.Text}' (línea {tok.Line}, col {tok.Column})");
         }
 
-        private static readonly HashSet<string> ReservedKeywords = new()
-        {
-            "class", "void", "if", "else", "while", "for", "return", "break",
-            "read", "write", "switch", "using", "default", "case", "List",
-            "new", "true", "false", "int", "char", "bool", "string", "float"
-        };
-
         public override object VisitAssignStatement(MiniCSParser.AssignStatementContext ctx)
         {
             var lhsTag = (int)VisitDesignator(ctx.designator());
             var rhsTag = (int)VisitExpr(ctx.expr());
 
             if (lhsTag != rhsTag)
-                Report($"Incompatibilidad de tipos en asignación (se esperaba {TypeTags.Name(lhsTag)}, vino {TypeTags.Name(rhsTag)})",
+                Report(
+                    $"Incompatibilidad de tipos en asignación (se esperaba {TypeTags.Name(lhsTag)}, vino {TypeTags.Name(rhsTag)})",
                     ctx.ASSIGN().Symbol);
 
-            return null;
-        }
-
-
-        public override object VisitBlock(MiniCSParser.BlockContext ctx)
-        {
-            Table.OpenScope();
-
-            foreach (var vdc in ctx.varDecl())
-            {
-                Visit(vdc); // Esto usa VisitVarDecl para registrar variables locales
-            }
-
-            foreach (var stmt in ctx.statement())
-            {
-                Visit(stmt); // Procesa los statements dentro del bloque
-            }
-
-            Table.CloseScope();
             return null;
         }
 
@@ -69,17 +44,13 @@ namespace MiniCSharp.checker.semanticChecker
         public override object VisitDesignator(MiniCSParser.DesignatorContext ctx)
         {
             var name = ctx.ident(0).GetText();
-            Console.WriteLine($"[DEBUG] Lookup de '{name}'. Símbolos activos:");
-            Table.PrintActive();
             var symbol = Table.Lookup(name);
-
             if (symbol == null)
             {
                 Report($"Símbolo no declarado '{name}'", ctx.ident(0).Start);
                 return TypeTags.Unknown;
             }
 
-            // Acceso con índices: listas (p.ej. enteros[i])
             if (ctx.SBL().Length > 0)
             {
                 if (!TypeTags.IsList(symbol.TypeTag))
@@ -90,11 +61,9 @@ namespace MiniCSharp.checker.semanticChecker
 
                 foreach (var expr in ctx.expr())
                 {
-                    var indexType = (int)VisitExpr(expr);
-                    if (indexType != TypeTags.Int)
-                    {
-                        Report("Índice de lista debe ser de tipo int", expr.Start);
-                    }
+                    var idxTag = (int)VisitExpr(expr);
+                    if (idxTag != TypeTags.Int)
+                        Report("Índice de lista debe ser int", expr.Start);
                 }
 
                 return TypeTags.ElementType(symbol.TypeTag);
@@ -102,7 +71,6 @@ namespace MiniCSharp.checker.semanticChecker
 
             return symbol.TypeTag;
         }
-
 
         public override object VisitReturnStatement(MiniCSParser.ReturnStatementContext ctx)
         {
@@ -141,24 +109,56 @@ namespace MiniCSharp.checker.semanticChecker
             return type;
         }
 
-        public override object VisitFactor(MiniCSParser.FactorContext ctx)
+        public override object VisitDesignatorFactor(MiniCSParser.DesignatorFactorContext context)
         {
-            if (ctx.FLOATLIT() != null) return TypeTags.Float;
-            if (ctx.listLiteral() != null)
-                return VisitListLiteral(ctx.listLiteral());
-            if (ctx.NUMLIT() != null) return TypeTags.Int;
-            if (ctx.CHARLIT() != null) return TypeTags.Char;
-            if (ctx.STRINGLIT() != null) return TypeTags.String;
-            if (ctx.TRUE() != null || ctx.FALSE() != null) return TypeTags.Bool;
-
-            if (ctx.designator() != null)
-            {
-                var sym = Table.Lookup(ctx.designator().GetText());
-                return sym?.TypeTag ?? ReportAndReturn(TypeTags.Unknown, ctx.designator().Start);
-            }
-
-            return ctx.LEFTP() != null ? VisitExpr(ctx.expr()) : TypeTags.Unknown;
+            return (int)VisitDesignator(context.designator());
         }
+
+        public override object VisitNumLitFactor(MiniCSParser.NumLitFactorContext context)
+            => TypeTags.Int;
+
+        public override object VisitFloatLitFactor(MiniCSParser.FloatLitFactorContext context)
+            => TypeTags.Float;
+
+        public override object VisitCharLitFactor(MiniCSParser.CharLitFactorContext context)
+            => TypeTags.Char;
+
+        public override object VisitStringLitFactor(MiniCSParser.StringLitFactorContext context)
+            => TypeTags.String;
+
+        public override object VisitTrueFactor(MiniCSParser.TrueFactorContext context)
+            => TypeTags.Bool;
+
+        public override object VisitFalseFactor(MiniCSParser.FalseFactorContext context)
+            => TypeTags.Bool;
+        public override object VisitNewObjectOrArray(MiniCSParser.NewObjectOrArrayContext ctx)
+        {
+            var baseTag = (int)Visit(ctx.type());
+            if (ctx.SBL() != null)
+            {
+                // new T[] o new T[expr]
+                if (ctx.expr() != null && (int)VisitExpr(ctx.expr()) != TypeTags.Int)
+                    Report("Tamaño de array debe ser int", ctx.SBL().Symbol);
+                return TypeTags.ArrayOf(baseTag);
+            }
+            // new Objeto
+            return baseTag; // o ClassTag, según tu diseño
+        }
+
+        public override object VisitParenExpr(MiniCSParser.ParenExprContext ctx)
+            => VisitExpr(ctx.expr());
+
+        public override object VisitListLiteralFactor(MiniCSParser.ListLiteralFactorContext ctx)
+            => VisitListLiteral(ctx.listLiteral());
+
+        public override object VisitListLiteral(MiniCSParser.ListLiteralContext ctx)
+        {
+            var et = (int)VisitExpr(ctx.expr(0));
+            for (int i = 1; i < ctx.expr().Length; i++)
+                if ((int)VisitExpr(ctx.expr(i)) != et)
+                    Report("Elementos de lista con tipos distintos", ctx.expr(i).Start);
+            return TypeTags.ListOf(et);
+        } 
 
         public override object VisitCondition(MiniCSParser.ConditionContext ctx)
         {
@@ -243,8 +243,6 @@ namespace MiniCSharp.checker.semanticChecker
 
         public override object VisitForStatement(MiniCSParser.ForStatementContext ctx)
         {
-            Table.OpenScope(); // Iniciar nuevo scope (por si se declara una variable en el for)
-
             // Parte de inicialización
             if (ctx.forInit() != null)
                 Visit(ctx.forInit());
@@ -264,8 +262,6 @@ namespace MiniCSharp.checker.semanticChecker
             _loopDepth++;
             Visit(ctx.statement()); // cuerpo del for
             _loopDepth--;
-
-            Table.CloseScope(); // Cerrar scope del for
 
             return null;
         }
@@ -303,12 +299,6 @@ namespace MiniCSharp.checker.semanticChecker
             return TypeTags.Float;
         }
 
-        public override object VisitSimpletype(MiniCSParser.SimpletypeContext ctx)
-        {
-            // Esta alternativa es 'type → simpleType'
-            // simpleType() devuelve un SimpleTypeContext (uno de los cinco anteriores)
-            return Visit(ctx.simpleType());
-        }
 
         public override object VisitListOfSimple(MiniCSParser.ListOfSimpleContext ctx)
         {
@@ -355,7 +345,7 @@ namespace MiniCSharp.checker.semanticChecker
             _ = VisitExpr(ctx.expr());
             return null;
         }
-        
+
         private int ReportAndReturn(int tag, IToken tok)
         {
             Report("Símbolo no declarado", tok);

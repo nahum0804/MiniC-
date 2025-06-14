@@ -1,10 +1,6 @@
 ﻿using Antlr4.Runtime;
-using generated.parser;
-using MiniCSharp.checker;
-using MiniCSharp.domain.errors;
-using Antlr4.Runtime.Tree;
 using MiniCSharp.checker.semanticChecker;
-using MiniCSharp.checker.symbolTable;
+using parser;
 
 namespace MiniCSharp;
 

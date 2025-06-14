@@ -1,5 +1,5 @@
 ﻿using Antlr4.Runtime;
-using generated.parser;
+using parser;
 
 namespace MiniCSharp.checker.symbolTable;
 

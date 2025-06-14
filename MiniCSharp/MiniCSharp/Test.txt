@@ -1,52 +1,32 @@
-﻿class ValidListExample {
-    List<int> enteros;
-    List<char> letras;
-    List<bool> flags;
-    List<string> mensajes;
-    List<float> reales;
+﻿class P
+{
+	class Table {
+		int[] pos;
+		int[] neg;
+	}
+	
+	Table val;
+	
+  void Main ()
+	{
+		int x, i;
+	
+		//---------- Initialize val ----------
+		val = new Table;
+		val.pos = new int[]; val.neg = new int[size];
+		i = (int)0.0;
+		while (i < size) {
+			add(val.pos,0); val.neg[i] = 0;
+			i++;	
+		}
 
-    int x;
-    bool activo;
-    string saludo;
-    char letra;
-    float pi;
-
-    void main() {
-        enteros = <1, 2, 3, 4>;
-        letras = <'A', 'B', 'C'>;
-        flags = <true, false, true>;
-        mensajes = <"Hola", "Mundo", "MiniCSharp">;
-        reales = <3.14f, 2.71f, 0.0f>;
-
-        x = 10;
-        activo = true;
-        saludo = "Bienvenido";
-        letra = 'Z';
-        pi = 3.1415f;
-
-        read(x);
-        write(saludo);
-        write(x);
-
-        int i;
-        for (i = 0; i < 3; i = i + 1) {
-            write(enteros[i]);
-        }
-
-        if (activo == true) {
-            write("Sistema activo");
-        } else {
-            write("Sistema inactivo");
-        }
-
-        while (x > 0) {
-            x = x - 1;
-        }
-    }
-
-    float duplicar(float valor) {
-        float resultado;
-        resultado = valor * 2.0f;
-        return resultado;
-    }
+		/*---------- Read /*values*/ ---------- */
+		read(x);
+		while (-size < x && x < size) {
+			if (0 <= x) val.pos[x]++;
+			else val.neg[-x]++;
+			read(x);
+	write("Valor de x: "); write(x,2);
+		}
+	}
 }
