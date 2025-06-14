@@ -1,12 +1,7 @@
-﻿using System;
-using System.Drawing;
-using System.IO;
-using System.Text;
-using System.Windows.Forms;
+﻿using System.Text;
 using Antlr4.Runtime;
 using generated.parser;
 using MiniCSharp.checker;
-using MiniCSharp.domain.errors;
 
 namespace MiniCSharp;
 
