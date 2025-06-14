@@ -11,16 +11,23 @@ RETURN      : 'return';
 BREAK       : 'break';
 READ        : 'read';
 WRITE       : 'write';
-
+SWITCH      : 'switch';
+USING       : 'using';
+DEFAULT     : 'default';
+CASE        : 'case';
+LIST        : 'List';
 
 NEW         : 'new';
-
 TRUE        : 'true';
 FALSE       : 'false';
 
+INT         : 'int';
+CHAR        : 'char';
+BOOL        : 'bool';
+STRING_TYPE : 'string';
+FLOAT       : 'float';
 
-
-//symbols
+// symbols
 BL          : '{';
 BR          : '}';
 COMMA       : ',';
@@ -46,20 +53,40 @@ GREATEREQ   : '>=';
 MULT        : '*';
 DIV         : '/';
 MOD         : '%';
+COLON       : ':';
 
+// literals
+FLOATLIT    : DIGIT+ '.' DIGIT+ [fF]? ;
+NUMLIT      : DIGIT+ ;
+CHARLIT     : '\'' (ESC_SEQ | ~['\\]) '\'' ;
+STRINGLIT   : '"' (ESC_SEQ | ~["\\])* '"' ;
+ID          : ('_' | LETTER) (LETTER | DIGIT | '.')* ;
 
+// whitespace & comments
+WS  : [ \t\r\n]+ -> skip ;
+LINE_COMMENT
+    : '//' ~[\r\n]* -> skip
+    ;
+BLOCK_COMMENT_START
+    : '/*' -> pushMode(COMMENT_MODE), skip
+    ;
+mode COMMENT_MODE;
+    NESTED_COMMENT_START
+        : '/*' -> pushMode(COMMENT_MODE)
+        ;
+    COMMENT_END
+        : '*/' -> popMode, skip
+        ;
 
-//other tokens
-NUMLIT: DIGIT DIGIT*;
-FLOATLIT: DIGIT+ '.' DIGIT+;
-CHARLIT: '\'' (ESC_SEQ | .) '\'';
-STRINGLIT: '"' (ESC_SEQ | ~["\\])* '"';
-ID: ('_'|LETTER) (LETTER|DIGIT|'.')*;
+    COMMENT_WS
+        : [\t\r\n]+ -> skip
+        ;
+   
+    COMMENT_CHAR
+        : . -> skip
+        ;
 
-fragment ESC_SEQ: '\\' ['bfnrt"\\];
-fragment LETTER : 'a'..'z' | 'A'..'Z';
-fragment DIGIT : '0'..'9' ;
-
-//skip tokens
-LINE_COMMENT:   '//' .*? '\r'? '\n' -> skip ;
-WS : [ \t\n\r]+ -> skip ;
+// fragments
+fragment ESC_SEQ  : '\\' ['bfnrt"\\] ;
+fragment LETTER   : [a-zA-Z] ;
+fragment DIGIT    : [0-9] ;

@@ -6,20 +6,20 @@
         <PerGrammarGenerationSettings>
           <option name="fileName" value="$PROJECT_DIR$/MiniCSharp/MiniCSParser.g4" />
           <option name="autoGen" value="true" />
-          <option name="outputDir" value="C:\Users\n4hum\OneDrive\Escritorio\Codigo-MainDir\C#\ProyectoCompi\MiniCSharp\MiniCSharp" />
+          <option name="outputDir" value="./generated" />
           <option name="libDir" value="" />
           <option name="encoding" value="" />
-          <option name="pkg" value="generated.parser" />
+          <option name="pkg" value="parser" />
           <option name="language" value="CSharp" />
           <option name="generateVisitor" value="true" />
         </PerGrammarGenerationSettings>
         <PerGrammarGenerationSettings>
           <option name="fileName" value="$PROJECT_DIR$/MiniCSharp/MiniCSLexer.g4" />
           <option name="autoGen" value="true" />
-          <option name="outputDir" value="C:\Users\n4hum\OneDrive\Escritorio\Codigo-MainDir\C#\ProyectoCompi\MiniCSharp\MiniCSharp" />
+          <option name="outputDir" value="./generated" />
           <option name="libDir" value="" />
           <option name="encoding" value="" />
-          <option name="pkg" value="generated.parser" />
+          <option name="pkg" value="parser" />
           <option name="language" value="CSharp" />
           <option name="generateVisitor" value="true" />
         </PerGrammarGenerationSettings>

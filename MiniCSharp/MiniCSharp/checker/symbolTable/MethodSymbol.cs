@@ -1,6 +1,6 @@
 ﻿using Antlr4.Runtime;
 
-namespace MiniCSharp.checker;
+namespace MiniCSharp.checker.symbolTable;
 
 public class MethodSymbol(
     IToken token,

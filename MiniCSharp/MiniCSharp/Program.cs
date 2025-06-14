@@ -1,53 +1,61 @@
 ﻿using Antlr4.Runtime;
-using generated.parser;
-using MiniCSharp.checker;
-using MiniCSharp.domain.errors;
+using MiniCSharp.checker.semanticChecker;
+using parser;
 
 namespace MiniCSharp;
 
-class Program
+internal static class Program
 {
     private static void Main()
     {
         {
-            const string inputText = """
+            const string filePath = "Test.txt";
 
-                                                     class Prueba {
-                                                         int x, y;
-                                                         void foo(int a) {
-                                                             int z;
-                                                             z = a + x;      // x ha sido declarado globalmente
-                                                             write(z, 10);
-                                                         }
-                                                         void foo(int a) { }  // redeclaración: error semántico
-                                                     }
-                                                 
-                                     """;
+            if (!File.Exists(filePath))
+            {
+                Console.WriteLine($"Archivo no encontrado: {Path.GetFullPath(filePath)}");
+                return;
+            }
+
+            var inputText = File.ReadAllText(filePath);
 
             var inputStream = new AntlrInputStream(inputText);
             var lexer = new MiniCSLexer(inputStream);
-            lexer.RemoveErrorListeners();
-            lexer.AddErrorListener(new LexerErrorListener());
-
             var tokens = new CommonTokenStream(lexer);
-            
             var parser = new MiniCSParser(tokens);
-            parser.RemoveErrorListeners();
-            parser.AddErrorListener(new ParserErrorListener());
-
             var tree = parser.program();
 
-            Console.WriteLine("=== Árbol sintáctico ===");
-            Console.WriteLine(tree.ToStringTree(parser));
-            Console.WriteLine("========================\n");
+            // Generar tabla de símbolos
+            var symbolTableBuilder = new SymbolTableVisitor();
+            symbolTableBuilder.Visit(tree);
+            Console.WriteLine("----- SÍMBOLOS ACTIVOS -----");
+            symbolTableBuilder.Table.PrintActive();
+            // Usar la tabla en el checker
+            var checker = new MiniCsChecker(symbolTableBuilder.Table);
+            checker.Visit(tree);
 
-            var symVisitor = new SymbolTableVisitor();
-            symVisitor.Visit(tree);
+            //Tabla de simbolos
+            //Console.WriteLine("=== TABLA DE SÍMBOLOS ACTIVOS ===");
+            //checker.Table.PrintActive();
 
-            var table = symVisitor.Table;
-            table.Print();
+            checker.Table.Print();
 
-            Console.WriteLine("\n--- Fin del análisis semántico (tabla de símbolos) ---");
+            if (checker.HasErrors)
+            {
+                Console.ForegroundColor = ConsoleColor.Red;
+                Console.WriteLine("=== ERRORES SEMÁNTICOS ===");
+                foreach (var err in checker.Errors)
+                    Console.WriteLine("  " + err);
+                Console.ResetColor();
+            }
+            else
+            {
+                Console.ForegroundColor = ConsoleColor.Green;
+                Console.WriteLine("Compiled Successfully - Happy Coding :)");
+                Console.ResetColor();
+            }
+
+            Console.WriteLine("\n--- Fin del análisis semántico ---");
             Console.ReadKey();
         }
     }

@@ -3518,24 +3518,31 @@
     ]
   },
   "packageFolders": {
-    "C:\\Users\\greiv\\.nuget\\packages\\": {}
+    "C:\\Users\\greiv\\.nuget\\packages\\": {},
+    "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages": {}
   },
   "project": {
     "version": "1.0.0",
     "restore": {
-      "projectUniqueName": "E:\\Compiladores\\MiniC-\\MiniCSharp\\MiniCSharp\\MiniCSharp.csproj",
+      "projectUniqueName": "D:\\Proyectos\\MiniC-\\MiniCSharp\\MiniCSharp\\MiniCSharp.csproj",
       "projectName": "MiniCSharp",
-      "projectPath": "E:\\Compiladores\\MiniC-\\MiniCSharp\\MiniCSharp\\MiniCSharp.csproj",
+      "projectPath": "D:\\Proyectos\\MiniC-\\MiniCSharp\\MiniCSharp\\MiniCSharp.csproj",
       "packagesPath": "C:\\Users\\greiv\\.nuget\\packages\\",
-      "outputPath": "E:\\Compiladores\\MiniC-\\MiniCSharp\\MiniCSharp\\obj\\",
+      "outputPath": "D:\\Proyectos\\MiniC-\\MiniCSharp\\MiniCSharp\\obj\\",
       "projectStyle": "PackageReference",
+      "fallbackFolders": [
+        "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages"
+      ],
       "configFilePaths": [
-        "C:\\Users\\greiv\\AppData\\Roaming\\NuGet\\NuGet.Config"
+        "C:\\Users\\greiv\\AppData\\Roaming\\NuGet\\NuGet.Config",
+        "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.FallbackLocation.config",
+        "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.Offline.config"
       ],
       "originalTargetFrameworks": [
         "net9.0"
       ],
       "sources": {
+        "C:\\Program Files (x86)\\Microsoft SDKs\\NuGetPackages\\": {},
         "https://api.nuget.org/v3/index.json": {}
       },
       "frameworks": {
@@ -3554,7 +3561,7 @@
         "auditLevel": "low",
         "auditMode": "direct"
       },
-      "SdkAnalysisLevel": "9.0.200"
+      "SdkAnalysisLevel": "9.0.300"
     },
     "frameworks": {
       "net9.0": {
@@ -3585,7 +3592,7 @@
             "privateAssets": "all"
           }
         },
-        "runtimeIdentifierGraphPath": "C:\\Users\\greiv\\.dotnet\\sdk\\9.0.200/PortableRuntimeIdentifierGraph.json"
+        "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\9.0.300/PortableRuntimeIdentifierGraph.json"
       }
     }
   }

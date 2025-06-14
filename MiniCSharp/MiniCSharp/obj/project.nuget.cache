@@ -1,8 +1,8 @@
 {
   "version": 2,
-  "dgSpecHash": "wIu7DzE2Puw=",
+  "dgSpecHash": "smigyLeCUt8=",
   "success": true,
-  "projectFilePath": "E:\\Compiladores\\MiniC-\\MiniCSharp\\MiniCSharp\\MiniCSharp.csproj",
+  "projectFilePath": "D:\\Proyectos\\MiniC-\\MiniCSharp\\MiniCSharp\\MiniCSharp.csproj",
   "expectedPackageFiles": [
     "C:\\Users\\greiv\\.nuget\\packages\\antlr4.runtime.standard\\4.13.1\\antlr4.runtime.standard.4.13.1.nupkg.sha512",
     "C:\\Users\\greiv\\.nuget\\packages\\antlr4buildtasks\\12.10.0\\antlr4buildtasks.12.10.0.nupkg.sha512",
