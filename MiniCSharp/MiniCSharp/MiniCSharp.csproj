@@ -1,13 +1,17 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
     <PropertyGroup>
-        <!-- 1) Indica que es un EXE (aplicación de consola) -->
-        <OutputType>Exe</OutputType>
+        <!-- ejecutable con ventana -->
+        <OutputType>WinExe</OutputType>
 
-        <!-- 2) Versión de .NET que estás usando -->
-        <TargetFramework>net9.0</TargetFramework>
+        <!-- framework de escritorio; usa el que tengas instalado -->
+        <TargetFramework>net9.0-windows</TargetFramework>
+        <!-- o net8.0-windows / net7.0-windows -->
 
-        <!-- Estas líneas solo habilitan usings implícitos y nullable -->
+        <!-- referencia automática a Windows Forms -->
+        <UseWindowsForms>true</UseWindowsForms>
+
+        <!-- opcionales -->
         <ImplicitUsings>enable</ImplicitUsings>
         <Nullable>enable</Nullable>
     </PropertyGroup>
