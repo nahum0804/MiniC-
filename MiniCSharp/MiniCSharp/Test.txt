@@ -1,20 +1,47 @@
 ﻿class P {
   void Main() {
-    int n, i, sum;
-    n   = 5;
-    sum = 0;
-    // Crear array de tamaño n
+    int a, b, c, d, count;
+
+    // ——— Lectura de dos enteros ———
+    read(a);
+    read(b);
+
+    // ——— Operaciones básicas ———
+    c = a + b;   write(c);    // suma
+    c = a - b;   write(c);    // resta
+    c = a * b;   write(c);    // multiplicación
+    c = a / b;   write(c);    // división entera
+    c = a % b;   write(c);    // resto
+
+    // ——— Incremento/Decremento ———
+    a++;         write(a);    // a aumentado en 1
+    b--;         write(b);    // b disminuido en 1
+
+    // ——— Arreglos ———
+    // Creamos un arreglo de tamaño 'a'
     int[] arr;
-    arr = new int[n];
+    arr = new int[a];
 
-    // Inicializar arr[i] = i*2
-    for (i = 0; i < n; i = i + 1)
-      arr[i] = i * 2;
+    // Inicializamos arr[d] = d*2
+    for (d = 0; d < a; d = d + 1)
+      arr[d] = d * 2;
 
-    // Sumar todos los valores
-    for (i = 0; i < n; i = i + 1)
-      sum = sum + arr[i];
+    // Sumamos todos los elementos del arreglo
+    c = 0;
+    for (d = 0; d < a; d = d + 1)
+      c = c + arr[d];
+    write(c);
 
-    write(sum);  // con n=5 debe imprimir 0+2+4+6+8 = 20
+    // ——— If / Else ———
+    if (a > b)
+      write(1);
+    else
+      write(0);
+
+    // ——— While ———
+    count = 0;
+    while (count < b)
+      count++;
+    write(count);
   }
 }
