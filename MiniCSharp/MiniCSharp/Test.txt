@@ -1,9 +1,27 @@
 ﻿class P {
   void Main() {
-    int x;
-    x = 5;
-    write(x);
-    read(x);
-    write(x);
+    int a, b;
+
+    read(a);
+    read(b);
+
+    if (a < b) 
+      write(1);   // imprime 1 si a<b
+
+    if (a > b) 
+      write(2);   // imprime 2 si a>b
+    else 
+      write(3);   // imprime 3 si a<=b
+
+    if (a == b) 
+      write(4);   // imprime 4 si a==b
+
+    if (a < 10 && b > 0) 
+      write(5);
+    else 
+      write(6);
+
+    if (a < 0 || b < 0) 
+      write(7);
   }
 }

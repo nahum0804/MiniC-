@@ -43,11 +43,14 @@ public class CodeGenVisitor : MiniCSParserBaseVisitor<object>
 
         foreach (var vd in ctx.block().varDecl())
         {
-            var varName = vd.ident(0).GetText();
-            var typeClr = MapType(vd.type());
+            foreach (var id in vd.ident())
+            {
+                var varName = id.GetText();
+                var typeClr = MapType(vd.type());
 
-            var lb = _il.DeclareLocal(typeClr);
-            _locals[varName] = lb;
+                var lb = _il.DeclareLocal(typeClr);
+                _locals[varName] = lb;
+            }
         }
 
         Visit(ctx.block());
@@ -172,7 +175,70 @@ public class CodeGenVisitor : MiniCSParserBaseVisitor<object>
         return null;
     }
 
+    public override object VisitIfStmt(MiniCSParser.IfStmtContext ctx)
+    {
+        Visit(ctx.condition());                      // pila: 0 o 1
+        var elseL = _il.DefineLabel();
+        var endL  = _il.DefineLabel();
+        _il.Emit(OpCodes.Brfalse, elseL);
+
+        Visit(ctx.statement(0));                     // then
+        _il.Emit(OpCodes.Br, endL);
+
+        _il.MarkLabel(elseL);
+        if (ctx.ELSE() != null)
+            Visit(ctx.statement(1));                 // else
+
+        _il.MarkLabel(endL);
+        return null;
+    }
     
+    public override object VisitCondFact(MiniCSParser.CondFactContext ctx)
+    {
+        // expr relop expr
+        Visit(ctx.expr(0));
+        Visit(ctx.expr(1));
+
+        // Emite la comparación adecuada
+        switch (ctx.relop().GetText())
+        {
+            case "==": _il.Emit(OpCodes.Ceq);        break;
+            case "!=": _il.Emit(OpCodes.Ceq);        _il.Emit(OpCodes.Ldc_I4_0); _il.Emit(OpCodes.Ceq); break;
+            case "<":  _il.Emit(OpCodes.Clt);        break;
+            case ">":  _il.Emit(OpCodes.Cgt);        break;
+            case "<=": _il.Emit(OpCodes.Cgt);        _il.Emit(OpCodes.Ldc_I4_0); _il.Emit(OpCodes.Ceq); break;
+            case ">=": _il.Emit(OpCodes.Clt);        _il.Emit(OpCodes.Ldc_I4_0); _il.Emit(OpCodes.Ceq); break;
+            default: throw new NotSupportedException($"Relop no soportado: {ctx.relop().GetText()}");
+        }
+
+        return null;
+    }
+
+    public override object VisitCondTerm(MiniCSParser.CondTermContext ctx)
+    {
+        // condFact ( AND condFact )*
+        Visit(ctx.condFact(0));
+        for (int i = 1; i < ctx.condFact().Length; i++)
+        {
+            Visit(ctx.condFact(i));
+            _il.Emit(OpCodes.And);
+        }
+        return null;
+    }
+
+    public override object VisitCondition(MiniCSParser.ConditionContext ctx)
+    {
+        // condTerm ( OR condTerm )*
+        Visit(ctx.condTerm(0));
+        for (int i = 1; i < ctx.condTerm().Length; i++)
+        {
+            Visit(ctx.condTerm(i));
+            _il.Emit(OpCodes.Or);
+        }
+        return null;
+    }
+
+
     public override object VisitCallStmt(MiniCSParser.CallStmtContext ctx)
     {
         var name = ctx.designator().GetText();
