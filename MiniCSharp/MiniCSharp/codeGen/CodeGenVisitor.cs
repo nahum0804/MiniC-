@@ -163,8 +163,7 @@ public class CodeGenVisitor : MiniCSParserBaseVisitor<object>
         Visit(ctx.expr());
 
         // Console.Write(int)
-        var writeInt = typeof(Console)
-            .GetMethod("Write", new[]{ typeof(int) })!;
+        var writeInt = typeof(Console).GetMethod("WriteLine", new[] { typeof(int) })!;
         _il.EmitCall(OpCodes.Call, writeInt, null);
 
         return null;
