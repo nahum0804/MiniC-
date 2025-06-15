@@ -50,11 +50,12 @@ MOD         : '%';
 
 
 //other tokens
-NUMLIT: DIGIT DIGIT*;
-FLOATLIT: DIGIT+ '.' DIGIT+;
+FLOATLIT : DIGIT+ '.' DIGIT+ [fF];
+DOUBLELIT : DIGIT+ '.' DIGIT+;
+NUMLIT: DIGIT+;
 CHARLIT: '\'' (ESC_SEQ | .) '\'';
 STRINGLIT: '"' (ESC_SEQ | ~["\\])* '"';
-ID: ('_'|LETTER) (LETTER|DIGIT|'.')*;
+ID: ('_'|LETTER) (LETTER|DIGIT)*;
 
 fragment ESC_SEQ: '\\' ['bfnrt"\\];
 fragment LETTER : 'a'..'z' | 'A'..'Z';

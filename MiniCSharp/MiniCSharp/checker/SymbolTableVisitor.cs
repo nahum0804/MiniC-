@@ -1,32 +1,28 @@
-﻿using Antlr4.Runtime;
-using generated.parser;
+﻿using MiniCSharp.utils;
 
 namespace MiniCSharp.checker;
 
 public class SymbolTableVisitor : MiniCSParserBaseVisitor<object>
 {
-    public SymbolTable Table { get; } = new SymbolTable();
+    public SymbolTable Table { get; } = new();
+    public static SymbolTable? CurrentSymbolTable { get; private set; }
 
+    public SymbolTableVisitor()
+    {
+        CurrentSymbolTable = Table;
+    }
 
     public override object VisitProgram(MiniCSParser.ProgramContext context)
     {
         Table.OpenScope();
+        foreach (var c in context.classDecl())
+            VisitClassDecl(c);
 
-        foreach (var child in context.children)
-        {
-            switch (child)
-            {
-                case MiniCSParser.VarDeclContext vdc:
-                    VisitVarDecl(vdc);
-                    break;
-                case MiniCSParser.MethodDeclContext mdc:
-                    VisitMethodDecl(mdc);
-                    break;
-                case MiniCSParser.ClassDeclContext cdc:
-                    VisitClassDecl(cdc);
-                    break;
-            }
-        }
+        foreach (var v in context.varDecl())
+            VisitVarDecl(v);
+
+        foreach (var m in context.methodDecl())
+            VisitMethodDecl(m);
 
         return null;
     }
@@ -52,13 +48,6 @@ public class SymbolTableVisitor : MiniCSParserBaseVisitor<object>
     }
 
 
-    public override object VisitClassDecl(MiniCSParser.ClassDeclContext context)
-    {
-        foreach (var vdc in context.varDecl())
-            VisitVarDecl(vdc);
-        return null;
-    }
-
     public override object VisitMethodDecl(MiniCSParser.MethodDeclContext context)
     {
         var methodName = context.ident().GetText();
@@ -66,7 +55,6 @@ public class SymbolTableVisitor : MiniCSParserBaseVisitor<object>
 
         if (context.VOID() != null)
         {
-            // void = -1 (importante)
             returnTypeTag = -1;
         }
         else
@@ -97,7 +85,7 @@ public class SymbolTableVisitor : MiniCSParserBaseVisitor<object>
             Console.ResetColor();
         }
 
-        Table.OpenScope(); //Level +1
+        Table.OpenScope(); 
 
         if (formParsCtx != null)
         {
@@ -118,64 +106,86 @@ public class SymbolTableVisitor : MiniCSParserBaseVisitor<object>
 
         Visit(context.block());
 
-        Table.CloseScope();
 
         return null;
     }
 
     public override object VisitBlock(MiniCSParser.BlockContext context)
     {
-        Table.OpenScope(); // Level +1
+        Table.OpenScope(); 
 
-        foreach (var child in context.children)
-        {
-            switch (child)
-            {
-                case MiniCSParser.VarDeclContext vdc:
-                    VisitVarDecl(vdc);
-                    break;
-                case MiniCSParser.StatementContext stCtx:
-                    VisitStatement(stCtx);
-                    break;
-            }
-        }
+        foreach (var item in context.children)
+            Visit(item);
 
-        Table.CloseScope();
         return null;
     }
+
 
     public override object VisitDesignator(MiniCSParser.DesignatorContext context)
     {
-        var name = context.ident(0).Start.Text;
-        var symbol = Table.Lookup(name);
-        if (symbol != null) return null;
-        var tok = context.ident(0).Start;
-        Console.ForegroundColor = ConsoleColor.Red;
-        Console.WriteLine(
-            $"Error semántico: símbolo '{name}' no declarado (línea {tok.Line}, columna {tok.Column}).");
-        Console.ResetColor();
+        var baseName = context.ident(0).GetText();
+        var symbol = Table.Lookup(baseName);
+
+        if (symbol == null)
+        {
+            var tok = context.ident(0).Start;
+            Console.ForegroundColor = ConsoleColor.Red;
+            Console.WriteLine(
+                $"Error semántico: símbolo '{baseName}' no declarado (línea {tok.Line}, columna {tok.Column}).");
+            Console.ResetColor();
+            return null;
+        }
+
+        if (context.DOT() != null && context.ident().Length > 1)
+        {
+            var field = context.ident(1).GetText();
+
+            if (symbol.TypeTag >= 200 &&
+                TypeTag.ClassNameFromTag(symbol.TypeTag) is string)
+            {
+                if (!Table.LookupField(symbol.TypeTag, field, out _))
+                {
+                    var tok = context.ident(1).Start;
+                    Console.ForegroundColor = ConsoleColor.Red;
+                    Console.WriteLine(
+                        $"Error semántico: campo '{field}' no encontrado en el tipo del objeto '{baseName}' (línea {tok.Line}, col {tok.Column}).");
+                    Console.ResetColor();
+                }
+            }
+            else
+            {
+                var tok = context.ident(0).Start;
+                Console.ForegroundColor = ConsoleColor.Red;
+                Console.WriteLine(
+                    $"Error semántico: '{baseName}' no es un objeto de clase válido (línea {tok.Line}, columna {tok.Column}).");
+                Console.ResetColor();
+            }
+        }
+
+        foreach (var expr in context.expr())
+        {
+            VisitExpr(expr);
+        }
 
         return null;
     }
 
-
-    public override object VisitStatement(MiniCSParser.StatementContext context)
+    public override object VisitAssignStmt(MiniCSParser.AssignStmtContext context)
     {
-        if (context.designator() != null)
-        {
-            VisitDesignator(context.designator());
-            // SE PUEDE CHEQUEAR QUE EL TIPO DE EXPR SEA COMPATIBLE
-            if (context.expr() != null)
-                VisitExpr(context.expr());
-        }
+        VisitDesignator(context.designator());
+        VisitExpr(context.expr());
+        return null;
+    }
 
-        //Chequear expressions
-        if (context.WRITE() != null && context.expr() != null)
-        {
-            VisitExpr(context.expr());
-        }
+    public override object VisitReadStmt(MiniCSParser.ReadStmtContext context)
+    {
+        VisitDesignator(context.designator());
+        return null;
+    }
 
-        //Semantic extra para if,while,for
+    public override object VisitWriteStmt(MiniCSParser.WriteStmtContext context)
+    {
+        VisitExpr(context.expr());
         return null;
     }
 
@@ -209,14 +219,86 @@ public class SymbolTableVisitor : MiniCSParserBaseVisitor<object>
             if (context.LEFTP() != null && context.actPars() != null)
                 VisitActPars(context.actPars());
         }
-        else if (context.LEFTP() != null && context.expr() != null && context.RIGHTP() != null)
+
+        else if (context.NUMLIT() != null)
+            return TypeTag.Int;
+
+        else if (context.FLOATLIT() != null)
+            return TypeTag.Float;
+
+        else if (context.DOUBLELIT() != null)
+            return TypeTag.Double;
+
+        else if (context.CHARLIT() != null)
+            return TypeTag.Char;
+
+        else if (context.STRINGLIT() != null)
+            return TypeTag.String;
+
+        else if (context.TRUE() != null || context.FALSE() != null)
+            return TypeTag.Bool;
+
+
+        else if (context.LEFTP() != null && context.RIGHTP() != null && context.expr().Length == 1)
         {
-            VisitExpr(context.expr());
+            VisitExpr(context.expr(0));
         }
         else if (context.NEW() != null && context.ident() != null)
         {
-            //Chequear que el tipo este declarado
+            foreach (var expr in context.expr())
+            {
+                VisitExpr(expr);
+            }
+
+            var typeName = context.ident().GetText();
+            var typeTag =
+                TypeTag.FromTypeNameWithBrackets(typeName +
+                                                 string.Concat(Enumerable.Repeat("[]", context.expr().Length)));
+
+            if (typeTag == TypeTag.Unknown)
+            {
+                Console.ForegroundColor = ConsoleColor.Red;
+                Console.WriteLine(
+                    $"Error semántico: tipo '{typeName}' no declarado o inválido (línea {context.ident().Start.Line}).");
+                Console.ResetColor();
+            }
         }
+
+        return null;
+    }
+
+    public override object VisitClassDecl(MiniCSParser.ClassDeclContext ctx)
+    {
+        var className = ctx.ident().GetText();
+        var classToken = ctx.ident().Start;
+
+        int classTag = TypeTag.RegisterClass(className);
+
+        if (!Table.InsertClass(classToken, classTag, ctx))
+        {
+            Console.ForegroundColor = ConsoleColor.Red;
+            Console.WriteLine(
+                $"Clase '{className}' redeclarada", classToken);
+            Console.ResetColor();
+        }
+
+        Table.OpenScope();
+        foreach (var v in ctx.varDecl())
+        {
+            var fieldTypeTag = GetTypeTag(v.type().GetText());
+            foreach (var id in v.ident())
+            {
+                if (!Table.InsertField(className, id.Start, fieldTypeTag))
+                {
+                    Console.ForegroundColor = ConsoleColor.Red;
+                    Console.WriteLine(
+                        $"Campo '{id.GetText()}' redeclarado en clase '{className}'", id.Start);
+                    Console.ResetColor();
+                }
+            }
+        }
+
+        Table.CloseScope();
 
         return null;
     }
@@ -232,14 +314,8 @@ public class SymbolTableVisitor : MiniCSParserBaseVisitor<object>
         return null;
     }
 
-    private static int GetTypeTag(string typeName)
+    private static int GetTypeTag(string typeText)
     {
-        return typeName switch
-        {
-            "int" => 0,
-            "char" => 1,
-            "bool" => 2,
-            _ => -999
-        };
+        return TypeTag.FromTypeNameWithBrackets(typeText);
     }
 }

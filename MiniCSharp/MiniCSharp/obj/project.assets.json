@@ -3518,19 +3518,19 @@
     ]
   },
   "packageFolders": {
-    "C:\\Users\\greiv\\.nuget\\packages\\": {}
+    "C:\\Users\\adria\\.nuget\\packages\\": {}
   },
   "project": {
     "version": "1.0.0",
     "restore": {
-      "projectUniqueName": "E:\\Compiladores\\MiniC-\\MiniCSharp\\MiniCSharp\\MiniCSharp.csproj",
+      "projectUniqueName": "C:\\Users\\adria\\RiderProjects\\MiniC-\\MiniCSharp\\MiniCSharp\\MiniCSharp.csproj",
       "projectName": "MiniCSharp",
-      "projectPath": "E:\\Compiladores\\MiniC-\\MiniCSharp\\MiniCSharp\\MiniCSharp.csproj",
-      "packagesPath": "C:\\Users\\greiv\\.nuget\\packages\\",
-      "outputPath": "E:\\Compiladores\\MiniC-\\MiniCSharp\\MiniCSharp\\obj\\",
+      "projectPath": "C:\\Users\\adria\\RiderProjects\\MiniC-\\MiniCSharp\\MiniCSharp\\MiniCSharp.csproj",
+      "packagesPath": "C:\\Users\\adria\\.nuget\\packages\\",
+      "outputPath": "C:\\Users\\adria\\RiderProjects\\MiniC-\\MiniCSharp\\MiniCSharp\\obj\\",
       "projectStyle": "PackageReference",
       "configFilePaths": [
-        "C:\\Users\\greiv\\AppData\\Roaming\\NuGet\\NuGet.Config"
+        "C:\\Users\\adria\\AppData\\Roaming\\NuGet\\NuGet.Config"
       ],
       "originalTargetFrameworks": [
         "net9.0"
@@ -3554,7 +3554,7 @@
         "auditLevel": "low",
         "auditMode": "direct"
       },
-      "SdkAnalysisLevel": "9.0.200"
+      "SdkAnalysisLevel": "9.0.300"
     },
     "frameworks": {
       "net9.0": {
@@ -3585,7 +3585,7 @@
             "privateAssets": "all"
           }
         },
-        "runtimeIdentifierGraphPath": "C:\\Users\\greiv\\.dotnet\\sdk\\9.0.200/PortableRuntimeIdentifierGraph.json"
+        "runtimeIdentifierGraphPath": "C:\\Users\\adria\\.dotnet\\sdk\\9.0.301/PortableRuntimeIdentifierGraph.json"
       }
     }
   }

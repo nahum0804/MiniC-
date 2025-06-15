@@ -1,0 +1,42 @@
+﻿class P
+{
+    class Table {
+        int[] pos;
+        int[] neg;
+    }
+    
+    Table val;
+    
+    void Main()
+    {
+        int x, i;
+
+        //---------- Initialize val ----------
+        val = new Table;
+        int size;
+        size = 10;                     // Establecemos un tamaño concreto
+        val.pos = new int[size];
+        val.neg = new int[size];
+
+        // Inicializar ambos arreglos a cero
+        i = 0;
+        while (i < size) {
+            val.pos[i] = 0;
+            val.neg[i] = 0;
+            i = i + 1;
+        }
+
+        // ---------- Read values ----------
+        read(x);
+        while (-size < x && x < size) {
+            if (0 <= x) 
+                val.pos[x] = val.pos[x] + 1;
+            else 
+                val.neg[-x] = val.neg[-x] + 1;
+            read(x);
+        }
+
+        write("Valor de x: ");
+        write(x, 2);
+    }
+}

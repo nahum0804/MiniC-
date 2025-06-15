@@ -17,19 +17,24 @@ methodDecl  	    : ( type | VOID ) ident LEFTP ( formPars )? RIGHTP block
 
 formPars    	    : type ident ( COMMA type ident )*
                     ;
-type        	    : ident ( SBL SBR )?
+type        	    : ident ( SBL SBR )* 
                     ;
-statement           : designator ( ASSIGN expr | LEFTP ( actPars )? RIGHTP | ADD | SUB ) SEMICOLON
-            	    | IF LEFTP condition RIGHTP statement ( ELSE statement )?
-            	    | FOR LEFTP expr SEMICOLON ( condition )? SEMICOLON ( statement )? RIGHTP statement
-            	    | WHILE LEFTP condition RIGHTP statement
-                    | BREAK SEMICOLON
-                    | RETURN ( expr )?  SEMICOLON
-                    | READ LEFTP designator RIGHTP SEMICOLON
-                    | WRITE LEFTP expr ( COMMA NUMLIT )? RIGHTP SEMICOLON
-                    | block
-                    | SEMICOLON
+statement
+                    : designator ASSIGN expr SEMICOLON                       # assignStmt
+                    | designator LEFTP ( actPars )? RIGHTP SEMICOLON         # callStmt
+                    | designator ADD SEMICOLON                               # incStmt
+                    | designator SUB SEMICOLON                               # decStmt
+                    | IF LEFTP condition RIGHTP statement ( ELSE statement )?# ifStmt
+                    | FOR LEFTP expr SEMICOLON ( condition )? SEMICOLON ( statement )? RIGHTP statement # forStmt
+                    | WHILE LEFTP condition RIGHTP statement                 # whileStmt
+                    | BREAK SEMICOLON                                        # breakStmt
+                    | RETURN ( expr )? SEMICOLON                             # returnStmt
+                    | READ LEFTP designator RIGHTP SEMICOLON                 # readStmt
+                    | WRITE LEFTP expr ( COMMA NUMLIT )? RIGHTP SEMICOLON    # writeStmt
+                    | block                                                  # blockStmt
+                    | SEMICOLON                                              # emptyStmt
                     ;
+
 block       	    : BL ( varDecl | statement )* BR
                     ;
 actPars     	    : expr ( COMMA expr )*
@@ -46,15 +51,17 @@ expr        	    : ( BAR )?  ( cast )? term ( addop term )*
                     ;
 term        	    : factor ( mulop factor )*
                     ;
-factor     	        : designator ( LEFTP ( actPars )? RIGHTP )?
+factor              : designator ( LEFTP ( actPars )? RIGHTP )?
                     | NUMLIT
+                    | FLOATLIT                 
+                    | DOUBLELIT                
                     | CHARLIT
                     | STRINGLIT
                     | TRUE
                     | FALSE
-                    | NEW ident
+                    | NEW ident ( SBL expr SBR )*    // creación de listas
                     | LEFTP expr RIGHTP
-                    ;   
+                    ;
 designator  	    : ident ( DOT ident | SBL expr SBR )*
                     ;
 relop       	    : EQEQ | NOTEQ | GREATER | GREATEREQ | LESS | LESSEQ
