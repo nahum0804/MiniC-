@@ -23,17 +23,18 @@ public class CodeGenVisitor : MiniCSParserBaseVisitor<object>
 
     private readonly Dictionary<string, TypeBuilder> _nestedTypes
         = new();
-    private readonly Dictionary<ParserRuleContext,int> _exprTypes;
 
+    private readonly Dictionary<ParserRuleContext, int> _exprTypes;
 
 
     public CodeGenVisitor(ModuleBuilder module, SymbolTable symbols,
-        Dictionary<ParserRuleContext,int> exprTypes)
+        Dictionary<ParserRuleContext, int> exprTypes)
     {
-        _module     = module;
-        _symbols    = symbols;
-        _exprTypes  = exprTypes;
+        _module = module;
+        _symbols = symbols;
+        _exprTypes = exprTypes;
     }
+
     public void Generate(MiniCSParser.ProgramContext ctx)
     {
         _currentType = _module.DefineType(
@@ -48,7 +49,6 @@ public class CodeGenVisitor : MiniCSParserBaseVisitor<object>
                 className,
                 TypeAttributes.NestedPublic);
 
-            // 2.a) Definir campos en nested …
             foreach (var vd in cd.varDecl())
             {
                 var fieldType = MapType(vd.type());
@@ -262,6 +262,40 @@ public class CodeGenVisitor : MiniCSParserBaseVisitor<object>
 
     public override object VisitFactor(MiniCSParser.FactorContext ctx)
     {
+        if (ctx.designator() != null && ctx.LEFTP() != null)
+        {
+            var name = ctx.designator().GetText();
+            var args = ctx.actPars()?.expr() ?? Array.Empty<MiniCSParser.ExprContext>();
+
+            switch (name)
+            {
+                case "len":
+                {
+                    Visit(args[0]);
+                    var listType = VisitAndGetListType(args[0]);
+                    var countProp = listType.GetProperty("Count")!;
+                    _il.EmitCall(OpCodes.Callvirt, countProp.GetGetMethod()!, null);
+                    return null;
+                }
+                case "add":
+                {
+                    Visit(args[0]);
+                    Visit(args[1]);
+                    var addMethod = VisitAndGetListType(args[0]).GetMethod("Add")!;
+                    _il.EmitCall(OpCodes.Callvirt, addMethod, null);
+                    return null;
+                }
+                case "del":
+                {
+                    Visit(args[0]);
+                    Visit(args[1]);
+                    var removeAt = VisitAndGetListType(args[0]).GetMethod("RemoveAt")!;
+                    _il.EmitCall(OpCodes.Callvirt, removeAt, null);
+                    return null;
+                }
+            }
+        }
+
         if (ctx.NEW() != null && ctx.SBL().Length == 0)
         {
             var className = ctx.ident().GetText();
@@ -277,10 +311,14 @@ public class CodeGenVisitor : MiniCSParserBaseVisitor<object>
             {
                 "int" => typeof(int),
                 "char" => typeof(char),
-                _ => throw new NotSupportedException($"Tipo de array no soportado: {elemTypeName}")
+                "bool" => typeof(bool),
+                "float" => typeof(float),
+                "double" => typeof(double),
+                _ => throw new NotSupportedException($"Tipo de lista no soportado: {elemTypeName}")
             };
-            Visit(ctx.expr(0)); // tamaño
-            _il.Emit(OpCodes.Newarr, elemType);
+            var listType = typeof(List<>).MakeGenericType(elemType);
+            var ctor = listType.GetConstructor(Type.EmptyTypes)!;
+            _il.Emit(OpCodes.Newobj, ctor);
             return null;
         }
 
@@ -304,7 +342,7 @@ public class CodeGenVisitor : MiniCSParserBaseVisitor<object>
             }
             else if (des.SBL().Length > 0)
             {
-                Visit(des.expr(0)); 
+                Visit(des.expr(0));
                 _il.Emit(OpCodes.Ldelem_I4);
             }
 
@@ -314,7 +352,7 @@ public class CodeGenVisitor : MiniCSParserBaseVisitor<object>
 
         if (ctx.NUMLIT() != null)
         {
-            int v = int.Parse(ctx.NUMLIT().GetText());
+            var v = int.Parse(ctx.NUMLIT().GetText());
             _il.Emit(OpCodes.Ldc_I4, v);
             return null;
         }
@@ -324,11 +362,11 @@ public class CodeGenVisitor : MiniCSParserBaseVisitor<object>
             Visit(ctx.expr(0));
             return null;
         }
-        
+
         if (ctx.CHARLIT() != null)
         {
-            var raw = ctx.CHARLIT().GetText();                    
-            var unesc = Regex.Unescape(raw.Substring(1, raw.Length-2));
+            var raw = ctx.CHARLIT().GetText();
+            var unesc = Regex.Unescape(raw.Substring(1, raw.Length - 2));
             char c = unesc[0];
             _il.Emit(OpCodes.Ldc_I4, (int)c);
             _il.Emit(OpCodes.Conv_U2);
@@ -337,17 +375,18 @@ public class CodeGenVisitor : MiniCSParserBaseVisitor<object>
 
         if (ctx.STRINGLIT() != null)
         {
-            var raw = ctx.STRINGLIT().GetText();                  
-            var s   = Regex.Unescape(raw.Substring(1, raw.Length-2));
+            var raw = ctx.STRINGLIT().GetText();
+            var s = Regex.Unescape(raw.Substring(1, raw.Length - 2));
             _il.Emit(OpCodes.Ldstr, s);
             return null;
         }
-       
+
         if (ctx.TRUE() != null)
         {
             _il.Emit(OpCodes.Ldc_I4_1);
             return null;
         }
+
         if (ctx.FALSE() != null)
         {
             _il.Emit(OpCodes.Ldc_I4_0);
@@ -356,7 +395,7 @@ public class CodeGenVisitor : MiniCSParserBaseVisitor<object>
 
         if (ctx.FLOATLIT() != null)
         {
-            float f = float.Parse(ctx.FLOATLIT().GetText().TrimEnd('f','F'));
+            float f = float.Parse(ctx.FLOATLIT().GetText().TrimEnd('f', 'F'));
             _il.Emit(OpCodes.Ldc_R4, f);
             return null;
         }
@@ -379,12 +418,12 @@ public class CodeGenVisitor : MiniCSParserBaseVisitor<object>
 
         MethodInfo mi = tag switch
         {
-            TypeTag.String  => typeof(Console).GetMethod("WriteLine", new[] { typeof(string) })!,
-            TypeTag.Char    => typeof(Console).GetMethod("WriteLine", new[] { typeof(char) })!,
-            TypeTag.Bool    => typeof(Console).GetMethod("WriteLine", new[] { typeof(bool) })!,
-            TypeTag.Float   => typeof(Console).GetMethod("WriteLine", new[] { typeof(float) })!,
-            TypeTag.Double  => typeof(Console).GetMethod("WriteLine", new[] { typeof(double) })!,
-            TypeTag.Int     => typeof(Console).GetMethod("WriteLine", new[] { typeof(int) })!,
+            TypeTag.String => typeof(Console).GetMethod("WriteLine", new[] { typeof(string) })!,
+            TypeTag.Char => typeof(Console).GetMethod("WriteLine", new[] { typeof(char) })!,
+            TypeTag.Bool => typeof(Console).GetMethod("WriteLine", new[] { typeof(bool) })!,
+            TypeTag.Float => typeof(Console).GetMethod("WriteLine", new[] { typeof(float) })!,
+            TypeTag.Double => typeof(Console).GetMethod("WriteLine", new[] { typeof(double) })!,
+            TypeTag.Int => typeof(Console).GetMethod("WriteLine", new[] { typeof(int) })!,
             _ => throw new NotSupportedException(
                 $"No hay WriteLine para tipo {TypeTag.PrettyPrint(tag)}"
             )
@@ -400,9 +439,9 @@ public class CodeGenVisitor : MiniCSParserBaseVisitor<object>
     {
         _il.EmitCall(OpCodes.Call, typeof(Console).GetMethod("ReadLine", Type.EmptyTypes)!, null);
         var name = ctx.designator().GetText();
-        var tag  = _symbols.Lookup(name)!.TypeTag;
+        var tag = _symbols.Lookup(name)!.TypeTag;
 
-        switch(tag)
+        switch (tag)
         {
             case TypeTag.Int:
                 _il.EmitCall(OpCodes.Call, typeof(int).GetMethod("Parse", [typeof(string)])!, null);
@@ -540,7 +579,55 @@ public class CodeGenVisitor : MiniCSParserBaseVisitor<object>
         var args = ctx.actPars()?.expr()
                    ?? Array.Empty<MiniCSParser.ExprContext>();
 
-        throw new NotSupportedException($"Llamada a '{name}' no implementada.");
+        switch (name)
+        {
+            case "len":
+                Visit(args[0]); // apilar la lista
+                var listCountProp = VisitAndGetListType(args[0]).GetProperty("Count");
+                _il.EmitCall(OpCodes.Callvirt, listCountProp?.GetGetMethod()!, null);
+                return null;
+
+            case "add":
+                Visit(args[0]);
+                Visit(args[1]);
+                var listAddMethod = VisitAndGetListType(args[0]).GetMethod("Add");
+                if (listAddMethod != null) _il.EmitCall(OpCodes.Callvirt, listAddMethod, null);
+                return null;
+
+            case "del":
+                Visit(args[0]);
+                Visit(args[1]);
+                var listType = VisitAndGetListType(args[0]);
+                var removeAt = listType.GetMethod("RemoveAt");
+                if (removeAt != null) _il.EmitCall(OpCodes.Callvirt, removeAt, null);
+                return null;
+            default:
+                throw new NotSupportedException($"Llamada a '{name}' no implementada.");
+        }
+    }
+
+    /// <summary>
+    /// Helper para obtener el tipo CLR de una lista dada la expresión.
+    /// </summary>
+    private Type VisitAndGetListType(MiniCSParser.ExprContext expr)
+    {
+        var tag = _exprTypes[expr];
+        // derivar tipo base y dimensiones usando TypeTag utilitario
+        var pretty = TypeTag.PrettyPrint(tag);
+        // pretty es algo como "int[]" o "int[][]", pero para listas dinámicas usamos List<>
+        var (baseName, dims) = TypeTag.ParseFullType(pretty);
+        var baseClr = baseName switch
+        {
+            "int" => typeof(int),
+            "char" => typeof(char),
+            "bool" => typeof(bool),
+            "float" => typeof(float),
+            "double" => typeof(double),
+            _ => throw new NotSupportedException($"Tipo de lista no soportado: {baseName}")
+        };
+        // dims indica cuántos niveles de lista
+        // sólo permitimos listas unidimensionales
+        return typeof(List<>).MakeGenericType(baseClr);
     }
 
     public override object VisitForInit(MiniCSParser.ForInitContext ctx)
@@ -564,23 +651,23 @@ public class CodeGenVisitor : MiniCSParserBaseVisitor<object>
     private Type MapType(MiniCSParser.TypeContext t)
     {
         var baseName = t.ident().GetText();
-        Type baseClr = baseName switch
+        var baseClr = baseName switch
         {
-            "int"    => typeof(int),
-            "char"   => typeof(char),
-            "bool"   => typeof(bool),        // ← agregar
-            "float"  => typeof(float),       // ← agregar
-            "double" => typeof(double),      // ← agregar
+            "int" => typeof(int),
+            "char" => typeof(char),
+            "bool" => typeof(bool), 
+            "float" => typeof(float), 
+            "double" => typeof(double), 
             "string" => typeof(string),
             _ when _nestedTypes.ContainsKey(baseName)
                 => _nestedTypes[baseName],
             _ => throw new NotSupportedException($"Tipo no soportado: {baseName}")
         };
 
-        int dims = t.SBL().Length;
-        for (int i = 0; i < dims; i++)
-            baseClr = baseClr.MakeArrayType();
-
-        return baseClr;
+        var dims = t.SBL().Length;
+        return dims > 0
+            ?
+            typeof(List<>).MakeGenericType(baseClr)
+            : baseClr;
     }
 }

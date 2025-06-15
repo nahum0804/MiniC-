@@ -85,7 +85,7 @@ public class SymbolTableVisitor : MiniCSParserBaseVisitor<object>
             Console.ResetColor();
         }
 
-        Table.OpenScope(); 
+        Table.OpenScope();
 
         if (formParsCtx != null)
         {
@@ -112,7 +112,7 @@ public class SymbolTableVisitor : MiniCSParserBaseVisitor<object>
 
     public override object VisitBlock(MiniCSParser.BlockContext context)
     {
-        Table.OpenScope(); 
+        Table.OpenScope();
 
         foreach (var item in context.children)
             Visit(item);
@@ -124,6 +124,12 @@ public class SymbolTableVisitor : MiniCSParserBaseVisitor<object>
     public override object VisitDesignator(MiniCSParser.DesignatorContext context)
     {
         var baseName = context.ident(0).GetText();
+
+        if (baseName is "add" or "len" or "del")
+        {
+            return null;
+        }
+
         var symbol = Table.Lookup(baseName);
 
         if (symbol == null)

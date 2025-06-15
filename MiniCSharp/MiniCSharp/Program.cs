@@ -23,7 +23,6 @@ class Program
 
             var inputText = File.ReadAllText(filePath);
 
-            // ——— 1) Parseo ———
             var inputStream = new AntlrInputStream(inputText);
             var lexer       = new MiniCSLexer(inputStream);
             lexer.RemoveErrorListeners();
@@ -41,13 +40,11 @@ class Program
             PrintTree(tree, parser, 0);
             Console.WriteLine("========================\n");
 
-            // ——— 2) Construcción de tabla de símbolos ———
             var symVisitor = new SymbolTableVisitor();
             symVisitor.Visit(tree);
             var table = symVisitor.Table;
             table.Print();
 
-            // ——— 3) Análisis semántico ———
             var checker = new MiniCSChecker { Table = table };
             checker.Visit(tree);
 
@@ -65,21 +62,17 @@ class Program
             Console.WriteLine("\n--- Análisis semántico exitoso. Sin errores. ---");
             Console.ResetColor();
 
-            // ——— 4) Generación de código IL ———
 
-            // 4.1) Crea el ensamblado dinámico
             var asmName       = new AssemblyName("MiniCSharpProgram");
             var asmBuilder    = AssemblyBuilder.DefineDynamicAssembly(asmName, AssemblyBuilderAccess.Run);
             if (asmName.Name != null)
             {
                 var moduleBuilder = asmBuilder.DefineDynamicModule(asmName.Name);
 
-                // 4.2) Recorre el AST y emite IL
                 var codeGen = new CodeGenVisitor(moduleBuilder, table, checker.ExprTypes);
                 codeGen.Generate(tree);
             }
 
-            // 4.3) Define el punto de entrada y salva el ejecutable
             var programType = asmBuilder.GetType("P");
             var mainMethod  = programType?.GetMethod("Main", BindingFlags.Public | BindingFlags.Static);
             mainMethod?.Invoke(null, null);
@@ -110,7 +103,7 @@ class Program
                 break;
         }
 
-        for (int i = 0; i < node.ChildCount; i++)
+        for (var i = 0; i < node.ChildCount; i++)
             PrintTree(node.GetChild(i), parser, indent + 1);
     }
 }

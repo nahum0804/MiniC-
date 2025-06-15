@@ -32,6 +32,59 @@ namespace MiniCSharp.checker
         public override object VisitCallStmt(MiniCSParser.CallStmtContext ctx)
         {
             var name = ctx.designator().GetText();
+            var args = ctx.actPars()?.expr() ?? Array.Empty<MiniCSParser.ExprContext>();
+
+            // --- BUILT-INS PARA LISTAS ---
+            if (name == "len")
+            {
+                if (args.Length != 1)
+                    Report("len() espera 1 parámetro", ctx.Start);
+                else
+                {
+                    int listTag = (int)Visit(args[0]);
+                    if (listTag < TypeTag.ListBase)
+                        Report("len() debe recibir una lista", args[0].Start);
+                }
+
+                ExprTypes[ctx] = TypeTag.Int;
+                return TypeTag.Int;
+            }
+
+            if (name == "add")
+            {
+                if (args.Length != 2)
+                    Report("add() espera 2 parámetros", ctx.Start);
+                else
+                {
+                    int listTag = (int)Visit(args[0]);
+                    int elemTag = (int)Visit(args[1]);
+                    if (listTag < TypeTag.ListBase)
+                        Report("add() debe recibir una lista", args[0].Start);
+                    // opcional: comprobar elemTag contra tipo de lista
+                }
+
+                return TypeTag.Void;
+            }
+
+            if (name == "del")
+            {
+                if (args.Length != 2)
+                    Report("del() espera 2 parámetros", ctx.Start);
+                else
+                {
+                    int listTag = (int)Visit(args[0]);
+                    int idxTag = (int)Visit(args[1]);
+                    if (listTag < TypeTag.ListBase)
+                        Report("del() debe recibir una lista", args[0].Start);
+                    if (idxTag != TypeTag.Int)
+                        Report("del() espera un índice int", args[1].Start);
+                }
+
+                return TypeTag.Void;
+            }
+            // --- FIN BUILT-INS ---
+
+            // Lógica original para llamadas a métodos de usuario
             var sym = Table.Lookup(name) as MethodSymbol;
             if (sym == null)
             {
@@ -39,7 +92,6 @@ namespace MiniCSharp.checker
                 return TypeTag.Void;
             }
 
-            var args = ctx.actPars()?.expr() ?? Array.Empty<MiniCSParser.ExprContext>();
             if (args.Length != sym.ParamTypeTags.Count)
             {
                 Report(
@@ -148,6 +200,47 @@ namespace MiniCSharp.checker
 
         public override object VisitFactor(MiniCSParser.FactorContext ctx)
         {
+            if (ctx.designator() != null && ctx.LEFTP() != null)
+            {
+                var name = ctx.designator().GetText();
+                var args = ctx.actPars()?.expr() ?? Array.Empty<MiniCSParser.ExprContext>();
+
+                switch (name)
+                {
+                    case "len":
+                    {
+                        if (args.Length != 1)
+                            Report("len() espera 1 parámetro", ctx.Start);
+                        else
+                        {
+                            var listTag = (int)Visit(args[0]);
+                            if (listTag < TypeTag.ListBase)
+                                Report("len() debe recibir una lista", args[0].Start);
+                        }
+
+                        ExprTypes[ctx] = TypeTag.Int;
+                        return TypeTag.Int;
+                    }
+                    case "add" or "del":
+                    {
+                        switch (name)
+                        {
+                            case "add" when args.Length != 2:
+                                Report("add() espera 2 parámetros", ctx.Start);
+                                break;
+                            case "del" when args.Length != 2:
+                                Report("del() espera 2 parámetros", ctx.Start);
+                                break;
+                        }
+
+                        foreach (var e in args) Visit(e);
+                        ExprTypes[ctx] = TypeTag.Unknown;
+                        return TypeTag.Unknown;
+                    }
+                }
+            }
+
+            // Factor: new Clase(...)
             if (ctx.NEW() != null && ctx.SBL().Length == 0 && ctx.LEFTP() != null)
             {
                 var className = ctx.ident().GetText();
@@ -158,6 +251,7 @@ namespace MiniCSharp.checker
                 return tag;
             }
 
+            // Factor: new arreglo/lista
             if (ctx.NEW() != null && ctx.SBL().Length > 0)
             {
                 var baseName = ctx.ident().GetText();
@@ -178,12 +272,13 @@ namespace MiniCSharp.checker
                 return arrayTag;
             }
 
+            // Factor: llamada a método o definición de designator simple
             if (ctx.designator() != null)
             {
                 return VisitDesignatorAndGetType(ctx.designator());
             }
 
-            // 4) literales
+            // Literales
             if (ctx.NUMLIT() != null)
             {
                 ExprTypes[ctx] = TypeTag.Int;
@@ -220,7 +315,7 @@ namespace MiniCSharp.checker
                 return TypeTag.Bool;
             }
 
-            // 5) paréntesis
+            // Subexpresión entre paréntesis
             if (ctx.LEFTP() != null && ctx.expr().Length > 0)
             {
                 var t = (int)Visit(ctx.expr(0));
@@ -228,6 +323,7 @@ namespace MiniCSharp.checker
                 return t;
             }
 
+            // Caso por defecto: factor no soportado
             Report($"Factor no soportado: {ctx.GetText()}", ctx.Start);
             ExprTypes[ctx] = TypeTag.Unknown;
             return TypeTag.Unknown;
@@ -285,7 +381,6 @@ namespace MiniCSharp.checker
 
         private int VisitDesignatorAndGetType(MiniCSParser.DesignatorContext ctx)
         {
-            // 1) Base: nombre de variable o parámetro
             var baseName = ctx.ident(0).GetText();
             var baseSym = Table.Lookup(baseName);
             if (baseSym == null)
