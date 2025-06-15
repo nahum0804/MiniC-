@@ -1,35 +1,14 @@
 ﻿class P 
 {
+    int sum(int a, int b)
+    {
+        return a + b;
+    }
+
     void Main()
     {
         int x;
-
-        // Primer switch: x = 1 → entra en case 1
-        x = 1;
-        switch (x)
-        {
-            case 1:
-                write(100);
-                break;
-            case 2:
-                write(200);
-                break;
-            default:
-                write(300);
-        };
-
-        // Segundo switch: x = 3 → no coincide ningún case → default
-        x = 3;
-        switch (x)
-        {
-            case 1:
-                write(100);
-                break;
-            case 2:
-                write(200);
-                break;
-            default:
-                write(300);
-        };
+        x = sum(5, 20);
+        write(x);   // debe imprimir: 12
     }
 }

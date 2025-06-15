@@ -119,6 +119,7 @@ namespace MiniCSharp.checker
             return TypeTag.Void;
         }
 
+        
 
         private int PromoteNumeric(int a, int b)
         {
@@ -599,7 +600,7 @@ namespace MiniCSharp.checker
 
         public override object VisitReturnStmt(MiniCSParser.ReturnStmtContext ctx)
         {
-            int actual = ctx.expr() != null
+            var actual = ctx.expr() != null
                 ? (int)Visit(ctx.expr())
                 : TypeTag.Void;
 
@@ -665,8 +666,17 @@ namespace MiniCSharp.checker
 
         public override object VisitMethodDecl(MiniCSParser.MethodDeclContext ctx)
         {
+            if (ctx.VOID() != null)
+                _currentReturnTag = TypeTag.Void;
+            else
+                _currentReturnTag = TypeTag.FromTypeNameWithBrackets(ctx.type().GetText());
+
             Visit(ctx.block());
-            return null;
+
+            _currentReturnTag = TypeTag.Void;
+
+            return TypeTag.Void;
         }
+
     }
 }
