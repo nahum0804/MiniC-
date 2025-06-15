@@ -25,7 +25,7 @@ statement
                     | designator ADD SEMICOLON                               # incStmt
                     | designator SUB SEMICOLON                               # decStmt
                     | IF LEFTP condition RIGHTP statement ( ELSE statement )?# ifStmt
-                    | FOR LEFTP expr SEMICOLON ( condition )? SEMICOLON ( statement )? RIGHTP statement # forStmt
+                    | FOR LEFTP ( designator ASSIGN expr )? SEMICOLON condition? SEMICOLON ( designator ASSIGN expr )? RIGHTP statement # forStmt
                     | WHILE LEFTP condition RIGHTP statement                 # whileStmt
                     | BREAK SEMICOLON                                        # breakStmt
                     | RETURN ( expr )? SEMICOLON                             # returnStmt
