@@ -175,13 +175,13 @@ public class CodeGenVisitor : MiniCSParserBaseVisitor<object>
         {
             var arrName = des.ident(0).GetText();
             var arrLb = _locals[arrName];
-            _il.Emit(OpCodes.Ldloc, arrLb.LocalIndex); 
+            _il.Emit(OpCodes.Ldloc, arrLb.LocalIndex);
 
-            Visit(des.expr(0)); 
+            Visit(des.expr(0));
 
             Visit(ctx.expr());
 
-            _il.Emit(OpCodes.Stelem_I4); 
+            _il.Emit(OpCodes.Stelem_I4);
             return null;
         }
 
@@ -299,7 +299,8 @@ public class CodeGenVisitor : MiniCSParserBaseVisitor<object>
             }
             else if (des.SBL().Length > 0)
             {
-                Visit(des.expr(0));
+                Visit(des.expr(0)); 
+                _il.Emit(OpCodes.Ldelem_I4);
             }
 
             return null;

@@ -1,11 +1,56 @@
 ﻿class P {
+  // Clase anidada con campos
   class Point { int x, y; }
 
   void Main() {
+    // 1) Lectura y aritmética básica
+    int a, b, c;
+    read(a); read(b);
+    write(a + b);    // suma
+    write(a - b);    // resta
+    write(a * b);    // multiplicación
+    write(a / b);    // división
+    write(a % b);    // resto
+
+    // 2) ++ y --
+    a++; write(a);
+    b--; write(b);
+
+    // 3) Condicionales
+    if (a == b) 
+      write(100);
+    else if (a > b)
+      write(101);
+    else
+      write(102);
+
+    // 4) While
+    int w;
+    w = 3;
+    while (w > 0) {
+      write(w);
+      w--;
+    }
+
+    // 5) For e arreglos
+    int n, i, sum;
+    read(n);
+    int[] arr;
+    arr = new int[n];
+    // llena arr[i] = i*i
+    for (i = 0; i < n; i = i + 1)
+      arr[i] = i * i;
+    // suma los cuadrados
+    sum = 0;
+    for (i = 0; i < n; i = i + 1)
+      sum = sum + arr[i];
+    write(sum);
+
+    // 6) Objetos y campos
     Point p;
     p = new Point();
-    p.x = 3;
-    p.y = 4;
+    p.x = sum;
+    p.y = a;
     write(p.x);
     write(p.y);
   }
