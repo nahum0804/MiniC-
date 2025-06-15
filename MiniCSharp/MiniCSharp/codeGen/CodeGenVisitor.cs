@@ -1,6 +1,7 @@
 ﻿using System.Reflection;
 using System.Reflection.Emit;
 using MiniCSharp.checker;
+using MiniCSharp.utils;
 
 namespace MiniCSharp.codeGen;
 
@@ -12,6 +13,16 @@ public class CodeGenVisitor : MiniCSParserBaseVisitor<object>
     private readonly SymbolTable _symbols;
     private readonly Dictionary<string, LocalBuilder> _locals = new();
 
+    private readonly Dictionary<(string className, string fieldName), FieldBuilder> _fieldBuilders
+        = new();
+
+    private readonly Dictionary<string, ConstructorBuilder> _ctorBuilders
+        = new();
+
+    private readonly Dictionary<string, TypeBuilder> _nestedTypes
+        = new();
+
+
     public CodeGenVisitor(ModuleBuilder module, SymbolTable symbols)
     {
         _module = module;
@@ -20,7 +31,50 @@ public class CodeGenVisitor : MiniCSParserBaseVisitor<object>
 
     public void Generate(MiniCSParser.ProgramContext ctx)
     {
-        _currentType = _module.DefineType("P", TypeAttributes.Public | TypeAttributes.Class);
+        _currentType = _module.DefineType(
+            ctx.ident().GetText(),
+            TypeAttributes.Public | TypeAttributes.Class);
+
+
+        foreach (var cd in ctx.classDecl())
+        {
+            var className = cd.ident().GetText();
+            var nested = _currentType.DefineNestedType(
+                className,
+                TypeAttributes.NestedPublic);
+
+            // 2.a) Definir campos en nested …
+            foreach (var vd in cd.varDecl())
+            {
+                var fieldType = MapType(vd.type());
+                foreach (var id in vd.ident())
+                {
+                    var fb = nested.DefineField(
+                        id.GetText(),
+                        fieldType,
+                        FieldAttributes.Public);
+                    _fieldBuilders[(className, id.GetText())] = fb;
+                }
+            }
+
+            var ctorBuilder = nested.DefineConstructor(
+                MethodAttributes.Public,
+                CallingConventions.Standard,
+                Type.EmptyTypes);
+            var ilc = ctorBuilder.GetILGenerator();
+            ilc.Emit(OpCodes.Ldarg_0);
+            ilc.Emit(OpCodes.Call,
+                typeof(object).GetConstructor(Type.EmptyTypes)!);
+            ilc.Emit(OpCodes.Ret);
+
+            _ctorBuilders[className] = ctorBuilder;
+            _nestedTypes[className] = nested;
+        }
+
+        foreach (var nested in _nestedTypes.Values)
+        {
+            nested.CreateType();
+        }
 
         foreach (var m in ctx.methodDecl())
             VisitMethodDecl(m);
@@ -62,11 +116,11 @@ public class CodeGenVisitor : MiniCSParserBaseVisitor<object>
     public override object VisitForStmt(MiniCSParser.ForStmtContext ctx)
     {
         if (ctx.forInit() != null)
-            Visit(ctx.forInit());         
+            Visit(ctx.forInit());
 
         var loopStart = _il.DefineLabel();
         var condCheck = _il.DefineLabel();
-        var loopEnd   = _il.DefineLabel();
+        var loopEnd = _il.DefineLabel();
 
         _il.Emit(OpCodes.Br, condCheck);
 
@@ -74,12 +128,12 @@ public class CodeGenVisitor : MiniCSParserBaseVisitor<object>
         Visit(ctx.statement());
 
         if (ctx.forUpdate() != null)
-            Visit(ctx.forUpdate());     
+            Visit(ctx.forUpdate());
 
         _il.MarkLabel(condCheck);
         if (ctx.condition() != null)
         {
-            Visit(ctx.condition());      
+            Visit(ctx.condition());
             _il.Emit(OpCodes.Brfalse, loopEnd);
         }
 
@@ -88,8 +142,6 @@ public class CodeGenVisitor : MiniCSParserBaseVisitor<object>
         _il.MarkLabel(loopEnd);
         return null;
     }
-
-
 
 
     public override object VisitBlock(MiniCSParser.BlockContext ctx)
@@ -103,26 +155,42 @@ public class CodeGenVisitor : MiniCSParserBaseVisitor<object>
     {
         var des = ctx.designator();
 
-        if (des.SBL().Length> 0)
+        if (des.DOT().Length > 0)
         {
-            var name = des.ident(0).GetText();
-            var lb   = _locals[name];
+            var objName = des.ident(0).GetText();
+            var lbObj = _locals[objName];
+            _il.Emit(OpCodes.Ldloc, lbObj.LocalIndex);
+            Visit(ctx.expr());
 
-            _il.Emit(OpCodes.Ldloc, lb.LocalIndex);        
-            Visit(des.expr(0));                             
-            Visit(ctx.expr());                             
+            var fieldName = des.ident(1).GetText();
+            var classTag = _symbols.Lookup(objName)!.TypeTag;
+            var className = TypeTag.ClassNameFromTag(classTag)!;
+            var fb = _fieldBuilders[(className, fieldName)];
+            _il.Emit(OpCodes.Stfld, fb);
 
-            _il.Emit(OpCodes.Stelem_I4);                    
+            return null;
+        }
+
+        if (des.SBL().Length > 0)
+        {
+            var arrName = des.ident(0).GetText();
+            var arrLb = _locals[arrName];
+            _il.Emit(OpCodes.Ldloc, arrLb.LocalIndex); 
+
+            Visit(des.expr(0)); 
+
+            Visit(ctx.expr());
+
+            _il.Emit(OpCodes.Stelem_I4); 
             return null;
         }
 
         Visit(ctx.expr());
         var simpleName = des.ident(0).GetText();
-        var lbVar      = _locals[simpleName];
+        var lbVar = _locals[simpleName];
         _il.Emit(OpCodes.Stloc, lbVar.LocalIndex);
         return null;
     }
-
 
     public override object VisitWhileStmt(MiniCSParser.WhileStmtContext ctx)
     {
@@ -158,14 +226,14 @@ public class CodeGenVisitor : MiniCSParserBaseVisitor<object>
 
         return null;
     }
-    
+
     public override object VisitTerm(MiniCSParser.TermContext ctx)
     {
         Visit(ctx.factor(0));
 
         for (int i = 1; i < ctx.factor().Length; i++)
         {
-            Visit(ctx.factor(i)); 
+            Visit(ctx.factor(i));
             var opToken = ctx.mulop(i - 1).GetText();
             switch (opToken)
             {
@@ -189,7 +257,15 @@ public class CodeGenVisitor : MiniCSParserBaseVisitor<object>
 
     public override object VisitFactor(MiniCSParser.FactorContext ctx)
     {
-        if (ctx.NEW() != null)
+        if (ctx.NEW() != null && ctx.SBL().Length == 0)
+        {
+            var className = ctx.ident().GetText();
+            var ctorBuilder = _ctorBuilders[className];
+            _il.Emit(OpCodes.Newobj, ctorBuilder);
+            return null;
+        }
+
+        if (ctx.NEW() != null && ctx.SBL().Length > 0)
         {
             var elemTypeName = ctx.ident().GetText();
             var elemType = elemTypeName switch
@@ -198,27 +274,37 @@ public class CodeGenVisitor : MiniCSParserBaseVisitor<object>
                 "char" => typeof(char),
                 _ => throw new NotSupportedException($"Tipo de array no soportado: {elemTypeName}")
             };
-            Visit(ctx.expr(0));
-            _il.Emit(OpCodes.Newarr, elemType); 
+            Visit(ctx.expr(0)); // tamaño
+            _il.Emit(OpCodes.Newarr, elemType);
             return null;
         }
+
 
         if (ctx.designator() != null && ctx.LEFTP() == null)
         {
             var des = ctx.designator();
-            var name = des.ident(0).GetText();
-            var lb = _locals[name];
+            var baseName = des.ident(0).GetText();
 
+            var lb = _locals[baseName];
             _il.Emit(OpCodes.Ldloc, lb.LocalIndex);
 
-            if (des.SBL().Length > 0)
+
+            if (des.DOT().Length > 0)
+            {
+                var fieldName = des.ident(1).GetText();
+                var sym = _symbols.Lookup(baseName)!;
+                var className = TypeTag.ClassNameFromTag(sym.TypeTag)!;
+                var fb = _fieldBuilders[(className, fieldName)];
+                _il.Emit(OpCodes.Ldfld, fb);
+            }
+            else if (des.SBL().Length > 0)
             {
                 Visit(des.expr(0));
-                _il.Emit(OpCodes.Ldelem_I4);
             }
 
             return null;
         }
+
 
         if (ctx.NUMLIT() != null)
         {
@@ -235,7 +321,6 @@ public class CodeGenVisitor : MiniCSParserBaseVisitor<object>
 
         throw new NotSupportedException($"Factor no soportado: {ctx.GetText()}");
     }
-
 
     public override object VisitWriteStmt(MiniCSParser.WriteStmtContext ctx)
     {
@@ -262,7 +347,7 @@ public class CodeGenVisitor : MiniCSParserBaseVisitor<object>
         );
 
         var name = ctx.designator().GetText();
-        var lb = _locals[name]; 
+        var lb = _locals[name];
         _il.Emit(OpCodes.Stloc, lb.LocalIndex);
 
         return null;
@@ -289,10 +374,8 @@ public class CodeGenVisitor : MiniCSParserBaseVisitor<object>
             throw new InvalidOperationException($"Variable '{name}' no declarada.");
 
         _il.Emit(OpCodes.Ldloc, lb.LocalIndex);
-        // Resta 1
         _il.Emit(OpCodes.Ldc_I4_1);
         _il.Emit(OpCodes.Sub);
-        // Guarda de nuevo en la misma variable
         _il.Emit(OpCodes.Stloc, lb.LocalIndex);
 
         return null;
@@ -301,12 +384,12 @@ public class CodeGenVisitor : MiniCSParserBaseVisitor<object>
 
     public override object VisitIfStmt(MiniCSParser.IfStmtContext ctx)
     {
-        Visit(ctx.condition()); 
+        Visit(ctx.condition());
         var elseL = _il.DefineLabel();
         var endL = _il.DefineLabel();
         _il.Emit(OpCodes.Brfalse, elseL);
 
-        Visit(ctx.statement(0)); 
+        Visit(ctx.statement(0));
         _il.Emit(OpCodes.Br, endL);
 
         _il.MarkLabel(elseL);
@@ -381,34 +464,36 @@ public class CodeGenVisitor : MiniCSParserBaseVisitor<object>
 
         throw new NotSupportedException($"Llamada a '{name}' no implementada.");
     }
-    
+
     public override object VisitForInit(MiniCSParser.ForInitContext ctx)
     {
-        Visit(ctx.expr());                         
-        var name = ctx.designator().GetText();      
-        var lb   = _locals[name];                    
-        _il.Emit(OpCodes.Stloc, lb.LocalIndex);    
+        Visit(ctx.expr());
+        var name = ctx.designator().GetText();
+        var lb = _locals[name];
+        _il.Emit(OpCodes.Stloc, lb.LocalIndex);
         return null;
     }
 
     public override object VisitForUpdate(MiniCSParser.ForUpdateContext ctx)
     {
-        Visit(ctx.expr());                         
-        var name = ctx.designator().GetText();       
-        var lb   = _locals[name];
-        _il.Emit(OpCodes.Stloc, lb.LocalIndex);    
+        Visit(ctx.expr());
+        var name = ctx.designator().GetText();
+        var lb = _locals[name];
+        _il.Emit(OpCodes.Stloc, lb.LocalIndex);
         return null;
     }
-    
+
     private Type MapType(MiniCSParser.TypeContext t)
     {
         var baseName = t.ident().GetText();
         Type baseClr = baseName switch
         {
-            "int"    => typeof(int),
-            "char"   => typeof(char),
+            "int" => typeof(int),
+            "char" => typeof(char),
             "string" => typeof(string),
-            _        => throw new NotSupportedException($"Tipo no soportado: {baseName}")
+            _ when _nestedTypes.ContainsKey(baseName)
+                => _nestedTypes[baseName],
+            _ => throw new NotSupportedException($"Tipo no soportado: {baseName}")
         };
 
         int dims = t.SBL().Length;
@@ -417,5 +502,4 @@ public class CodeGenVisitor : MiniCSParserBaseVisitor<object>
 
         return baseClr;
     }
-
 }

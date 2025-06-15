@@ -62,7 +62,8 @@ factor              : designator ( LEFTP ( actPars )? RIGHTP )?
                     | STRINGLIT
                     | TRUE
                     | FALSE
-                    | NEW ident ( SBL expr SBR )*    // creación de listas
+                    | NEW ident LEFTP RIGHTP         // # newObject
+                    | NEW ident ( SBL expr SBR )+    // # newArray    
                     | LEFTP expr RIGHTP
                     ;
 designator  	    : ident ( DOT ident | SBL expr SBR )*

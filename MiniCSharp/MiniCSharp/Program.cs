@@ -37,9 +37,9 @@ class Program
 
             var tree = parser.program();
 
-            //Console.WriteLine("=== Árbol sintáctico ===");
-            //PrintTree(tree, parser, 0);
-            //Console.WriteLine("========================\n");
+            Console.WriteLine("=== Árbol sintáctico ===");
+            PrintTree(tree, parser, 0);
+            Console.WriteLine("========================\n");
 
             // ——— 2) Construcción de tabla de símbolos ———
             var symVisitor = new SymbolTableVisitor();

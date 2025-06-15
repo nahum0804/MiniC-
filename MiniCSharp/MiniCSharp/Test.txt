@@ -1,47 +1,12 @@
 ﻿class P {
+  class Point { int x, y; }
+
   void Main() {
-    int a, b, c, d, count;
-
-    // ——— Lectura de dos enteros ———
-    read(a);
-    read(b);
-
-    // ——— Operaciones básicas ———
-    c = a + b;   write(c);    // suma
-    c = a - b;   write(c);    // resta
-    c = a * b;   write(c);    // multiplicación
-    c = a / b;   write(c);    // división entera
-    c = a % b;   write(c);    // resto
-
-    // ——— Incremento/Decremento ———
-    a++;         write(a);    // a aumentado en 1
-    b--;         write(b);    // b disminuido en 1
-
-    // ——— Arreglos ———
-    // Creamos un arreglo de tamaño 'a'
-    int[] arr;
-    arr = new int[a];
-
-    // Inicializamos arr[d] = d*2
-    for (d = 0; d < a; d = d + 1)
-      arr[d] = d * 2;
-
-    // Sumamos todos los elementos del arreglo
-    c = 0;
-    for (d = 0; d < a; d = d + 1)
-      c = c + arr[d];
-    write(c);
-
-    // ——— If / Else ———
-    if (a > b)
-      write(1);
-    else
-      write(0);
-
-    // ——— While ———
-    count = 0;
-    while (count < b)
-      count++;
-    write(count);
+    Point p;
+    p = new Point();
+    p.x = 3;
+    p.y = 4;
+    write(p.x);
+    write(p.y);
   }
 }
