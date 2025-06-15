@@ -1,12 +1,20 @@
 ﻿class P {
   void Main() {
-    int i, sum;
+    int n, i, sum;
+    n   = 5;
     sum = 0;
+    // Crear array de tamaño n
+    int[] arr;
+    arr = new int[n];
 
-    // Suma de 1 a 5
-    for (i = 1; i < 6; i = i + 1)
-      sum = sum + i;
-      
-    write(sum);   // debería imprimir 15
+    // Inicializar arr[i] = i*2
+    for (i = 0; i < n; i = i + 1)
+      arr[i] = i * 2;
+
+    // Sumar todos los valores
+    for (i = 0; i < n; i = i + 1)
+      sum = sum + arr[i];
+
+    write(sum);  // con n=5 debe imprimir 0+2+4+6+8 = 20
   }
 }

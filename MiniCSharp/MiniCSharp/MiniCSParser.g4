@@ -25,7 +25,7 @@ statement
                     | designator ADD SEMICOLON                               # incStmt
                     | designator SUB SEMICOLON                               # decStmt
                     | IF LEFTP condition RIGHTP statement ( ELSE statement )?# ifStmt
-                    | FOR LEFTP ( designator ASSIGN expr )? SEMICOLON condition? SEMICOLON ( designator ASSIGN expr )? RIGHTP statement # forStmt
+                     | FOR LEFTP forInit? SEMICOLON condition? SEMICOLON forUpdate? RIGHTP statement  # forStmt
                     | WHILE LEFTP condition RIGHTP statement                 # whileStmt
                     | BREAK SEMICOLON                                        # breakStmt
                     | RETURN ( expr )? SEMICOLON                             # returnStmt
@@ -34,6 +34,9 @@ statement
                     | block                                                  # blockStmt
                     | SEMICOLON                                              # emptyStmt
                     ;
+
+forInit   : designator ASSIGN expr ;
+forUpdate : designator ASSIGN expr ;
 
 block       	    : BL ( varDecl | statement )* BR
                     ;
