@@ -1,18 +1,35 @@
-﻿class P
+﻿class P 
 {
     void Main()
     {
-        int[] lista;               // declara una “lista” de int
-        lista = new int[0];        // crea la lista vacía
+        int x;
 
-        add(lista, 10);            // lista = [10]
-        add(lista, 20);            // lista = [10, 20]
-        add(lista, 30);            // lista = [10, 20, 30]
+        // Primer switch: x = 1 → entra en case 1
+        x = 1;
+        switch (x)
+        {
+            case 1:
+                write(100);
+                break;
+            case 2:
+                write(200);
+                break;
+            default:
+                write(300);
+        };
 
-        write(len(lista));         // imprime: 2
-
-        del(lista, 0);             // elimina el elemento en índice 0 → lista = [20]
-
-        write(len(lista));         // imprime: 1
+        // Segundo switch: x = 3 → no coincide ningún case → default
+        x = 3;
+        switch (x)
+        {
+            case 1:
+                write(100);
+                break;
+            case 2:
+                write(200);
+                break;
+            default:
+                write(300);
+        };
     }
 }

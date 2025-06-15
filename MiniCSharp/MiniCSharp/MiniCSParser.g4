@@ -19,18 +19,22 @@ formPars    	    : type ident ( COMMA type ident )*
                     ;
 type        	    : ident ( SBL SBR )* 
                     ;
+caseBlock
+                    : CASE expr COLON statement*
+                    ;
 statement
                     : designator ASSIGN expr SEMICOLON                       # assignStmt
                     | designator LEFTP ( actPars )? RIGHTP SEMICOLON         # callStmt
                     | designator ADD SEMICOLON                               # incStmt
                     | designator SUB SEMICOLON                               # decStmt
-                    | IF LEFTP condition RIGHTP statement ( ELSE statement )?# ifStmt
-                     | FOR LEFTP forInit? SEMICOLON condition? SEMICOLON forUpdate? RIGHTP statement  # forStmt
+                    | IF LEFTP condition RIGHTP statement ( ELSE statement )? # ifStmt
+                    | FOR LEFTP forInit? SEMICOLON condition? SEMICOLON forUpdate? RIGHTP statement  # forStmt
                     | WHILE LEFTP condition RIGHTP statement                 # whileStmt
                     | BREAK SEMICOLON                                        # breakStmt
                     | RETURN ( expr )? SEMICOLON                             # returnStmt
                     | READ LEFTP designator RIGHTP SEMICOLON                 # readStmt
                     | WRITE LEFTP expr ( COMMA NUMLIT )? RIGHTP SEMICOLON    # writeStmt
+                    | SWITCH LEFTP expr RIGHTP BL caseBlock* ( DEFAULT COLON statement* )? BR # switchStmt
                     | block                                                  # blockStmt
                     | SEMICOLON                                              # emptyStmt
                     ;

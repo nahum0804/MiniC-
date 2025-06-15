@@ -16,6 +16,8 @@ namespace MiniCSharp.checker
 
         private int _currentReturnTag;
 
+        private int _switchDepth = 0;
+
 
         public Dictionary<ParserRuleContext, int> ExprTypes { get; } = new();
 
@@ -441,10 +443,11 @@ namespace MiniCSharp.checker
 
         public override object VisitBreakStmt(MiniCSParser.BreakStmtContext ctx)
         {
-            if (_loopDepth == 0)
+            if (_loopDepth == 0 && _switchDepth == 0)
                 Report("break fuera de bucle", ctx.Start);
             return 0;
         }
+
 
         public override object VisitCast(MiniCSParser.CastContext ctx)
         {
@@ -455,6 +458,7 @@ namespace MiniCSharp.checker
 
             return toTag;
         }
+
 
         public override object VisitCondTerm(MiniCSParser.CondTermContext ctx)
         {
@@ -494,7 +498,7 @@ namespace MiniCSharp.checker
             if (sym == null)
             {
                 Report($"Símbolo '{baseName}' no declarado", ctx.ident(0).Start);
-                ExprTypes[ctx] = TypeTag.Int; // fallback para no romper el resto
+                ExprTypes[ctx] = TypeTag.Int; 
                 return TypeTag.Int;
             }
 
@@ -545,6 +549,53 @@ namespace MiniCSharp.checker
 
             return 0;
         }
+
+        public override object VisitSwitchStmt(MiniCSParser.SwitchStmtContext ctx)
+        {
+            _switchDepth++;
+            int switchTag = (int)Visit(ctx.expr());
+            if (switchTag != TypeTag.Int && switchTag != TypeTag.Char)
+            {
+                Report(
+                    $"La expresión de switch debe ser int o char, no {TypeTag.PrettyPrint(switchTag)}",
+                    ctx.expr().Start
+                );
+            }
+
+            var seenConstants = new HashSet<string>();
+            foreach (var cb in ctx.caseBlock())
+            {
+                var constExpr = cb.expr();
+                int constTag = (int)Visit(constExpr);
+                if (constTag != switchTag)
+                {
+                    Report(
+                        $"Constante de case ({TypeTag.PrettyPrint(constTag)}) " +
+                        $"no coincide con switch ({TypeTag.PrettyPrint(switchTag)})",
+                        constExpr.Start
+                    );
+                }
+
+                var key = constExpr.GetText();
+                if (!seenConstants.Add(key))
+                {
+                    Report($"Etiqueta 'case {key}' duplicada", constExpr.Start);
+                }
+
+                foreach (var st in cb.statement())
+                    Visit(st);
+            }
+
+            if (ctx.DEFAULT() != null)
+            {
+                foreach (var st in ctx.statement())
+                    Visit(st);
+            }
+
+            _switchDepth--;
+            return TypeTag.Void;
+        }
+
 
         public override object VisitReturnStmt(MiniCSParser.ReturnStmtContext ctx)
         {

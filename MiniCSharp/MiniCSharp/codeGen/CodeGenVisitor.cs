@@ -410,6 +410,55 @@ public class CodeGenVisitor : MiniCSParserBaseVisitor<object>
         throw new NotSupportedException($"Factor no soportado: {ctx.GetText()}");
     }
 
+    public override object VisitSwitchStmt(MiniCSParser.SwitchStmtContext ctx)
+    {
+        Visit(ctx.expr());
+        var switchLocal = _il.DeclareLocal(typeof(int));
+        _il.Emit(OpCodes.Stloc, switchLocal);
+
+        var caseLabels = new List<Label>();
+        foreach (var cb in ctx.caseBlock())
+            caseLabels.Add(_il.DefineLabel());
+        var defaultLabel = _il.DefineLabel();
+        var endLabel = _il.DefineLabel();
+
+        for (int i = 0; i < ctx.caseBlock().Length; i++)
+        {
+            var cb = ctx.caseBlock(i);
+            _il.Emit(OpCodes.Ldloc, switchLocal);
+            var constText = cb.expr().GetText();
+            int constValue = int.Parse(constText);
+            _il.Emit(OpCodes.Ldc_I4, constValue);
+            _il.Emit(OpCodes.Beq, caseLabels[i]);
+        }
+
+        if (ctx.DEFAULT() != null)
+            _il.Emit(OpCodes.Br, defaultLabel);
+        else
+            _il.Emit(OpCodes.Br, endLabel);
+
+        for (int i = 0; i < ctx.caseBlock().Length; i++)
+        {
+            var cb = ctx.caseBlock(i);
+            _il.MarkLabel(caseLabels[i]);
+            foreach (var st in cb.statement())
+                Visit(st);
+            _il.Emit(OpCodes.Br, endLabel);
+        }
+
+        if (ctx.DEFAULT() != null)
+        {
+            _il.MarkLabel(defaultLabel);
+            foreach (var st in ctx.statement())
+                Visit(st);
+            _il.Emit(OpCodes.Br, endLabel);
+        }
+
+        _il.MarkLabel(endLabel);
+        return null;
+    }
+
+
     public override object VisitWriteStmt(MiniCSParser.WriteStmtContext ctx)
     {
         Visit(ctx.expr());
@@ -655,9 +704,9 @@ public class CodeGenVisitor : MiniCSParserBaseVisitor<object>
         {
             "int" => typeof(int),
             "char" => typeof(char),
-            "bool" => typeof(bool), 
-            "float" => typeof(float), 
-            "double" => typeof(double), 
+            "bool" => typeof(bool),
+            "float" => typeof(float),
+            "double" => typeof(double),
             "string" => typeof(string),
             _ when _nestedTypes.ContainsKey(baseName)
                 => _nestedTypes[baseName],
@@ -666,8 +715,7 @@ public class CodeGenVisitor : MiniCSParserBaseVisitor<object>
 
         var dims = t.SBL().Length;
         return dims > 0
-            ?
-            typeof(List<>).MakeGenericType(baseClr)
+            ? typeof(List<>).MakeGenericType(baseClr)
             : baseClr;
     }
 }

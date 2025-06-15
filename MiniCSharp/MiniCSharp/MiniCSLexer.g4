@@ -1,6 +1,5 @@
 ﻿lexer grammar MiniCSLexer;
 
-// keywords
 CLASS       : 'class';
 VOID        : 'void';
 IF          : 'if';
@@ -12,15 +11,16 @@ BREAK       : 'break';
 READ        : 'read';
 WRITE       : 'write';
 
-
 NEW         : 'new';
 
 TRUE        : 'true';
 FALSE       : 'false';
 
+SWITCH      : 'switch';
+CASE        : 'case';
+DEFAULT     : 'default';
 
-
-//symbols
+// symbols
 BL          : '{';
 BR          : '}';
 COMMA       : ',';
@@ -29,6 +29,7 @@ RIGHTP      : ')';
 SBL         : '[';
 SBR         : ']';
 ASSIGN      : '=';
+COLON       : ':';   // añadido
 ADD         : '++';
 SUB         : '--';
 OR          : '||';
@@ -40,14 +41,11 @@ PLUS        : '+';
 EQEQ        : '==';
 NOTEQ       : '!=';
 LESS        : '<';
-GREATER     : '>';
-LESSEQ      : '<=';
 GREATEREQ   : '>=';
+LESSEQ      : '<=';
 MULT        : '*';
 DIV         : '/';
 MOD         : '%';
-
-
 
 //other tokens
 FLOATLIT : DIGIT+ '.' DIGIT+ [fF];
