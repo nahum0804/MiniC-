@@ -147,5 +147,19 @@ namespace MiniCSharp.utils
         /// <param name="tag">Etiqueta de clase.</param>
         /// <returns>Nombre de la clase o null si no existe.</returns>
         public static string? ClassNameFromTag(int tag) => TagToClassName.GetValueOrDefault(tag);
+     
+        public static bool IsNumeric(int tag)
+        {
+            return tag == Int
+                   || tag == Float
+                   || tag == Double;
+        }
+
+        public static bool IsBoolean(int tag)
+        {
+            return tag == Bool;
+        }
+
+        
     }
 }

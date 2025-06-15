@@ -1,5 +1,7 @@
 ﻿using System.Reflection;
 using System.Reflection.Emit;
+using System.Text.RegularExpressions;
+using Antlr4.Runtime;
 using MiniCSharp.checker;
 using MiniCSharp.utils;
 
@@ -21,14 +23,17 @@ public class CodeGenVisitor : MiniCSParserBaseVisitor<object>
 
     private readonly Dictionary<string, TypeBuilder> _nestedTypes
         = new();
+    private readonly Dictionary<ParserRuleContext,int> _exprTypes;
 
 
-    public CodeGenVisitor(ModuleBuilder module, SymbolTable symbols)
+
+    public CodeGenVisitor(ModuleBuilder module, SymbolTable symbols,
+        Dictionary<ParserRuleContext,int> exprTypes)
     {
-        _module = module;
-        _symbols = symbols;
+        _module     = module;
+        _symbols    = symbols;
+        _exprTypes  = exprTypes;
     }
-
     public void Generate(MiniCSParser.ProgramContext ctx)
     {
         _currentType = _module.DefineType(
@@ -319,6 +324,49 @@ public class CodeGenVisitor : MiniCSParserBaseVisitor<object>
             Visit(ctx.expr(0));
             return null;
         }
+        
+        if (ctx.CHARLIT() != null)
+        {
+            var raw = ctx.CHARLIT().GetText();                    
+            var unesc = Regex.Unescape(raw.Substring(1, raw.Length-2));
+            char c = unesc[0];
+            _il.Emit(OpCodes.Ldc_I4, (int)c);
+            _il.Emit(OpCodes.Conv_U2);
+            return null;
+        }
+
+        if (ctx.STRINGLIT() != null)
+        {
+            var raw = ctx.STRINGLIT().GetText();                  
+            var s   = Regex.Unescape(raw.Substring(1, raw.Length-2));
+            _il.Emit(OpCodes.Ldstr, s);
+            return null;
+        }
+       
+        if (ctx.TRUE() != null)
+        {
+            _il.Emit(OpCodes.Ldc_I4_1);
+            return null;
+        }
+        if (ctx.FALSE() != null)
+        {
+            _il.Emit(OpCodes.Ldc_I4_0);
+            return null;
+        }
+
+        if (ctx.FLOATLIT() != null)
+        {
+            float f = float.Parse(ctx.FLOATLIT().GetText().TrimEnd('f','F'));
+            _il.Emit(OpCodes.Ldc_R4, f);
+            return null;
+        }
+
+        if (ctx.DOUBLELIT() != null)
+        {
+            double d = double.Parse(ctx.DOUBLELIT().GetText());
+            _il.Emit(OpCodes.Ldc_R8, d);
+            return null;
+        }
 
         throw new NotSupportedException($"Factor no soportado: {ctx.GetText()}");
     }
@@ -327,30 +375,59 @@ public class CodeGenVisitor : MiniCSParserBaseVisitor<object>
     {
         Visit(ctx.expr());
 
-        var writeInt = typeof(Console).GetMethod("WriteLine", new[] { typeof(int) })!;
-        _il.EmitCall(OpCodes.Call, writeInt, null);
+        int tag = _exprTypes[ctx.expr()];
+
+        MethodInfo mi = tag switch
+        {
+            TypeTag.String  => typeof(Console).GetMethod("WriteLine", new[] { typeof(string) })!,
+            TypeTag.Char    => typeof(Console).GetMethod("WriteLine", new[] { typeof(char) })!,
+            TypeTag.Bool    => typeof(Console).GetMethod("WriteLine", new[] { typeof(bool) })!,
+            TypeTag.Float   => typeof(Console).GetMethod("WriteLine", new[] { typeof(float) })!,
+            TypeTag.Double  => typeof(Console).GetMethod("WriteLine", new[] { typeof(double) })!,
+            TypeTag.Int     => typeof(Console).GetMethod("WriteLine", new[] { typeof(int) })!,
+            _ => throw new NotSupportedException(
+                $"No hay WriteLine para tipo {TypeTag.PrettyPrint(tag)}"
+            )
+        };
+
+        _il.EmitCall(OpCodes.Call, mi, null);
 
         return null;
     }
 
+
     public override object VisitReadStmt(MiniCSParser.ReadStmtContext ctx)
     {
-        _il.EmitCall(
-            OpCodes.Call,
-            typeof(Console).GetMethod("ReadLine", Type.EmptyTypes)!,
-            null
-        );
-
-        _il.EmitCall(
-            OpCodes.Call,
-            typeof(int).GetMethod("Parse", new[] { typeof(string) })!,
-            null
-        );
-
+        _il.EmitCall(OpCodes.Call, typeof(Console).GetMethod("ReadLine", Type.EmptyTypes)!, null);
         var name = ctx.designator().GetText();
+        var tag  = _symbols.Lookup(name)!.TypeTag;
+
+        switch(tag)
+        {
+            case TypeTag.Int:
+                _il.EmitCall(OpCodes.Call, typeof(int).GetMethod("Parse", [typeof(string)])!, null);
+                break;
+            case TypeTag.Bool:
+                _il.EmitCall(OpCodes.Call, typeof(bool).GetMethod("Parse", [typeof(string)])!, null);
+                break;
+            case TypeTag.Float:
+                _il.EmitCall(OpCodes.Call, typeof(float).GetMethod("Parse", [typeof(string)])!, null);
+                break;
+            case TypeTag.Double:
+                _il.EmitCall(OpCodes.Call, typeof(double).GetMethod("Parse", [typeof(string)])!, null);
+                break;
+            case TypeTag.String:
+                // nada, ya es string
+                break;
+            case TypeTag.Char:
+                _il.EmitCall(OpCodes.Call, typeof(string).GetMethod("get_Chars")!, null);
+                break;
+            default:
+                throw new NotSupportedException($"Read no soportado para tag={tag}");
+        }
+
         var lb = _locals[name];
         _il.Emit(OpCodes.Stloc, lb.LocalIndex);
-
         return null;
     }
 
@@ -489,8 +566,11 @@ public class CodeGenVisitor : MiniCSParserBaseVisitor<object>
         var baseName = t.ident().GetText();
         Type baseClr = baseName switch
         {
-            "int" => typeof(int),
-            "char" => typeof(char),
+            "int"    => typeof(int),
+            "char"   => typeof(char),
+            "bool"   => typeof(bool),        // ← agregar
+            "float"  => typeof(float),       // ← agregar
+            "double" => typeof(double),      // ← agregar
             "string" => typeof(string),
             _ when _nestedTypes.ContainsKey(baseName)
                 => _nestedTypes[baseName],

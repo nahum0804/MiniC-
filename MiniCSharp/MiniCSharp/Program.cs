@@ -75,7 +75,7 @@ class Program
                 var moduleBuilder = asmBuilder.DefineDynamicModule(asmName.Name);
 
                 // 4.2) Recorre el AST y emite IL
-                var codeGen = new CodeGenVisitor(moduleBuilder, table);
+                var codeGen = new CodeGenVisitor(moduleBuilder, table, checker.ExprTypes);
                 codeGen.Generate(tree);
             }
 
