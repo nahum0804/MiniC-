@@ -20,11 +20,8 @@ public class CodeGenVisitor : MiniCSParserBaseVisitor<object>
 
     public void Generate(MiniCSParser.ProgramContext ctx)
     {
-        // 1) Definir tipo P
         _currentType = _module.DefineType("P", TypeAttributes.Public | TypeAttributes.Class);
 
-        // 2) Para cada clase anidada (opcional) …
-        // 3) Para cada método:
         foreach (var m in ctx.methodDecl())
             VisitMethodDecl(m);
 
@@ -42,21 +39,17 @@ public class CodeGenVisitor : MiniCSParserBaseVisitor<object>
         );
         _il = mb.GetILGenerator();
 
-        // ¡Limpiamos el diccionario para este método!
         _locals.Clear();
 
-        // 4) Declarar locales y guardarlos
         foreach (var vd in ctx.block().varDecl())
         {
             var varName = vd.ident(0).GetText();
             var typeClr = MapType(vd.type());
 
-            // Guardamos el LocalBuilder que necesitamos luego
             var lb = _il.DeclareLocal(typeClr);
             _locals[varName] = lb;
         }
 
-        // 5) Generar cuerpo
         Visit(ctx.block());
 
         _il.Emit(OpCodes.Ret);
@@ -72,17 +65,13 @@ public class CodeGenVisitor : MiniCSParserBaseVisitor<object>
 
     public override object VisitAssignStmt(MiniCSParser.AssignStmtContext ctx)
     {
-        // 1) Generar la expresión del lado derecho
         Visit(ctx.expr());
 
-        // 2) Averiguar nombre de variable
         var name = ctx.designator().GetText();
 
-        // 3) Recuperar su LocalBuilder desde el diccionario
         if (!_locals.TryGetValue(name, out var lb))
             throw new InvalidOperationException($"Variable '{name}' no declarada en este método.");
 
-        // 4) Emitir stloc con el índice sin ambigüedad
         _il.Emit(OpCodes.Stloc, lb.LocalIndex);
 
         return null;
@@ -97,7 +86,6 @@ public class CodeGenVisitor : MiniCSParserBaseVisitor<object>
         Visit(ctx.condition());
         _il.Emit(OpCodes.Brfalse, end);
 
-        // Visita la sentencia dentro del while, sea un bloque u otra cosa
         Visit(ctx.statement());
 
         _il.Emit(OpCodes.Br, start);
@@ -126,7 +114,6 @@ public class CodeGenVisitor : MiniCSParserBaseVisitor<object>
 
     public override object VisitFactor(MiniCSParser.FactorContext ctx)
     {
-        // 1) Caso literal entero
         if (ctx.NUMLIT() != null)
         {
             int val = int.Parse(ctx.NUMLIT().GetText());
@@ -134,7 +121,6 @@ public class CodeGenVisitor : MiniCSParserBaseVisitor<object>
             return null;
         }
 
-        // 2) Caso una variable simple: designator sin llamada a método
         if (ctx.designator() != null && ctx.LEFTP() == null)
         {
             var name = ctx.designator().GetText();
@@ -145,24 +131,19 @@ public class CodeGenVisitor : MiniCSParserBaseVisitor<object>
             return null;
         }
 
-        // 3) Paréntesis: ( expr )
         if (ctx.LEFTP() != null && ctx.expr().Length > 0)
         {
-            // Sólo tomamos la primera expr dentro de ()
             Visit(ctx.expr(0));
             return null;
         }
 
-        // 4) Aquí podrías añadir FLOATLIT, DOUBLELIT, CHARLIT, STRINGLIT, TRUE/FALSE…
         throw new NotSupportedException($"Factor no soportado: {ctx.GetText()}");
     }
 
     public override object VisitWriteStmt(MiniCSParser.WriteStmtContext ctx)
     {
-        // Generar código de la expresión que se imprime
         Visit(ctx.expr());
 
-        // Console.Write(int)
         var writeInt = typeof(Console).GetMethod("WriteLine", new[] { typeof(int) })!;
         _il.EmitCall(OpCodes.Call, writeInt, null);
 
@@ -171,14 +152,12 @@ public class CodeGenVisitor : MiniCSParserBaseVisitor<object>
     
     public override object VisitReadStmt(MiniCSParser.ReadStmtContext ctx)
     {
-        // Console.ReadLine()
         _il.EmitCall(
             OpCodes.Call,
             typeof(Console).GetMethod("ReadLine", Type.EmptyTypes)!,
             null
         );
 
-        // int.Parse(...)
         _il.EmitCall(
             OpCodes.Call,
             typeof(int).GetMethod("Parse", new[]{ typeof(string) })!,
@@ -200,13 +179,10 @@ public class CodeGenVisitor : MiniCSParserBaseVisitor<object>
         var args = ctx.actPars()?.expr()
                    ?? Array.Empty<MiniCSParser.ExprContext>();
 
-        // Ejemplo simple: llamar a un método static de tu clase
-        // (más adelante podrías buscarlo en tu tabla de símbolos y emitir Call)
         throw new NotSupportedException($"Llamada a '{name}' no implementada.");
     }
 
 
-    // … más overrides para llamadas, if, new arrays, read, write, len, ord, chr …
 
     private Type MapType(MiniCSParser.TypeContext t)
     {
