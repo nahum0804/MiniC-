@@ -5,6 +5,7 @@
  * Date: 2025-06-14
  */
 
+using System.Reflection.Emit;
 using Antlr4.Runtime;
 
 namespace MiniCSharp.checker
@@ -36,6 +37,9 @@ namespace MiniCSharp.checker
         bool isConstant
     ) : Symbol(token, typeTag, scopeLevel, declContext)
     {
+        
+        public LocalBuilder? LocalBuilder { get; set; }
+
         /// <summary>
         /// Indica si la variable se declaró como constante (readonly).
         /// </summary>
