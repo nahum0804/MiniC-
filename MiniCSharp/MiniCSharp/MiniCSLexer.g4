@@ -53,6 +53,7 @@ DOUBLELIT : DIGIT+ '.' DIGIT+;
 NUMLIT: DIGIT+;
 CHARLIT: '\'' (ESC_SEQ | .) '\'';
 STRINGLIT: '"' (ESC_SEQ | ~["\\])* '"';
+NULL : 'null' ;
 ID: ('_'|LETTER) (LETTER|DIGIT)*;
 
 fragment ESC_SEQ: '\\' ['bfnrt"\\];

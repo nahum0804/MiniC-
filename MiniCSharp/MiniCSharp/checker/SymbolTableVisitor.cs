@@ -125,7 +125,7 @@ public class SymbolTableVisitor : MiniCSParserBaseVisitor<object>
     {
         var baseName = context.ident(0).GetText();
 
-        if (baseName is "add" or "len" or "del")
+        if (baseName is "add" or "len" or "del" or "ord" or "chr")
         {
             return null;
         }
@@ -225,6 +225,8 @@ public class SymbolTableVisitor : MiniCSParserBaseVisitor<object>
             if (context.LEFTP() != null && context.actPars() != null)
                 VisitActPars(context.actPars());
         }
+        else if (context.NULL() != null)
+            return TypeTag.Unknown;
 
         else if (context.NUMLIT() != null)
             return TypeTag.Int;
@@ -243,7 +245,6 @@ public class SymbolTableVisitor : MiniCSParserBaseVisitor<object>
 
         else if (context.TRUE() != null || context.FALSE() != null)
             return TypeTag.Bool;
-
 
         else if (context.LEFTP() != null && context.RIGHTP() != null && context.expr().Length == 1)
         {

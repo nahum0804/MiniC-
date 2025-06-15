@@ -18,7 +18,7 @@ namespace MiniCSharp.checker
 
         private int _switchDepth = 0;
 
-
+      
         public Dictionary<ParserRuleContext, int> ExprTypes { get; } = new();
 
         private void Report(string msg, IToken tok)
@@ -36,57 +36,83 @@ namespace MiniCSharp.checker
             var name = ctx.designator().GetText();
             var args = ctx.actPars()?.expr() ?? Array.Empty<MiniCSParser.ExprContext>();
 
-            // --- BUILT-INS PARA LISTAS ---
-            if (name == "len")
+            switch (name)
             {
-                if (args.Length != 1)
-                    Report("len() espera 1 parámetro", ctx.Start);
-                else
+                case "len":
                 {
-                    int listTag = (int)Visit(args[0]);
-                    if (listTag < TypeTag.ListBase)
-                        Report("len() debe recibir una lista", args[0].Start);
-                }
+                    if (args.Length != 1)
+                        Report("len() espera 1 parámetro", ctx.Start);
+                    else
+                    {
+                        var listTag = (int)Visit(args[0]);
+                        if (listTag < TypeTag.ListBase)
+                            Report("len() debe recibir una lista", args[0].Start);
+                    }
 
-                ExprTypes[ctx] = TypeTag.Int;
-                return TypeTag.Int;
+                    ExprTypes[ctx] = TypeTag.Int;
+                    return TypeTag.Int;
+                }
+                case "add":
+                {
+                    if (args.Length != 2)
+                        Report("add() espera 2 parámetros", ctx.Start);
+                    else
+                    {
+                        var listTag = (int)Visit(args[0]);
+                        var elemTag = (int)Visit(args[1]);
+                        if (listTag < TypeTag.ListBase)
+                            Report("add() debe recibir una lista", args[0].Start);
+                        // opcional: comprobar elemTag contra tipo de lista
+                    }
+
+                    return TypeTag.Void;
+                }
+                case "del":
+                {
+                    if (args.Length != 2)
+                        Report("del() espera 2 parámetros", ctx.Start);
+                    else
+                    {
+                        var listTag = (int)Visit(args[0]);
+                        var idxTag = (int)Visit(args[1]);
+                        if (listTag < TypeTag.ListBase)
+                            Report("del() debe recibir una lista", args[0].Start);
+                        if (idxTag != TypeTag.Int)
+                            Report("del() espera un índice int", args[1].Start);
+                    }
+
+                    return TypeTag.Void;
+                }
+                case "ord":
+                {
+                    if (args.Length != 1)
+                        Report("ord() espera 1 parámetro", ctx.Start);
+                    else
+                    {
+                        var tag = (int)Visit(args[0]);
+                        if (tag != TypeTag.Char)
+                            Report("ord() debe recibir un char", args[0].Start);
+                    }
+
+                    ExprTypes[ctx] = TypeTag.Int;
+                    return TypeTag.Int;
+                }
+                case "chr":
+                {
+                    if (args.Length != 1)
+                        Report("chr() espera 1 parámetro", ctx.Start);
+                    else
+                    {
+                        var tag = (int)Visit(args[0]);
+                        if (tag != TypeTag.Int)
+                            Report("chr() debe recibir un int", args[0].Start);
+                    }
+
+                    ExprTypes[ctx] = TypeTag.Char;
+                    return TypeTag.Char;
+                }
             }
 
-            if (name == "add")
-            {
-                if (args.Length != 2)
-                    Report("add() espera 2 parámetros", ctx.Start);
-                else
-                {
-                    int listTag = (int)Visit(args[0]);
-                    int elemTag = (int)Visit(args[1]);
-                    if (listTag < TypeTag.ListBase)
-                        Report("add() debe recibir una lista", args[0].Start);
-                    // opcional: comprobar elemTag contra tipo de lista
-                }
-
-                return TypeTag.Void;
-            }
-
-            if (name == "del")
-            {
-                if (args.Length != 2)
-                    Report("del() espera 2 parámetros", ctx.Start);
-                else
-                {
-                    int listTag = (int)Visit(args[0]);
-                    int idxTag = (int)Visit(args[1]);
-                    if (listTag < TypeTag.ListBase)
-                        Report("del() debe recibir una lista", args[0].Start);
-                    if (idxTag != TypeTag.Int)
-                        Report("del() espera un índice int", args[1].Start);
-                }
-
-                return TypeTag.Void;
-            }
-            // --- FIN BUILT-INS ---
-
-            // Lógica original para llamadas a métodos de usuario
             var sym = Table.Lookup(name) as MethodSymbol;
             if (sym == null)
             {
@@ -119,7 +145,6 @@ namespace MiniCSharp.checker
             return TypeTag.Void;
         }
 
-        
 
         private int PromoteNumeric(int a, int b)
         {
@@ -240,7 +265,38 @@ namespace MiniCSharp.checker
                         ExprTypes[ctx] = TypeTag.Unknown;
                         return TypeTag.Unknown;
                     }
+                    case "ord":
+                        if (args.Length != 1)
+                            Report("ord() espera 1 parámetro", ctx.Start);
+                        else
+                        {
+                            var t = (int)Visit(args[0]);
+                            if (t != TypeTag.Char)
+                                Report("ord() debe recibir un char", args[0].Start);
+                        }
+
+                        ExprTypes[ctx] = TypeTag.Int;
+                        return TypeTag.Int;
+
+                    case "chr":
+                        if (args.Length != 1)
+                            Report("chr() espera 1 parámetro", ctx.Start);
+                        else
+                        {
+                            var t = (int)Visit(args[0]);
+                            if (t != TypeTag.Int)
+                                Report("chr() debe recibir un int", args[0].Start);
+                        }
+
+                        ExprTypes[ctx] = TypeTag.Char;
+                        return TypeTag.Char;
                 }
+            }
+
+            else if (ctx.NULL() != null)
+            {
+                ExprTypes[ctx] = TypeTag.Unknown;
+                return TypeTag.Unknown;
             }
 
             // Factor: new Clase(...)
@@ -499,7 +555,7 @@ namespace MiniCSharp.checker
             if (sym == null)
             {
                 Report($"Símbolo '{baseName}' no declarado", ctx.ident(0).Start);
-                ExprTypes[ctx] = TypeTag.Int; 
+                ExprTypes[ctx] = TypeTag.Int;
                 return TypeTag.Int;
             }
 
@@ -540,13 +596,25 @@ namespace MiniCSharp.checker
             var leftTag = (int)VisitDesignator(ctx.designator());
             var rightTag = (int)Visit(ctx.expr());
 
-            if (leftTag != rightTag)
+            if (rightTag == TypeTag.Unknown)
+            {
+                bool isRef =
+                    leftTag == TypeTag.String           // string es referencia
+                    || leftTag >= TypeTag.ListBase        // cualquier arreglo (int[], char[], etc.)
+                    || TypeTag.IsCustomClass(leftTag);    // cualquier clase definida
+
+                if (!isRef)
+                    Report($"No se puede asignar null a {TypeTag.PrettyPrint(leftTag)}", ctx.Start);
+            }
+            // 3) Si no es null, el tipo izquierdo y derecho deben coincidir
+            else if (leftTag != rightTag)
             {
                 Report(
                     $"No se puede asignar {TypeTag.PrettyPrint(rightTag)} a {TypeTag.PrettyPrint(leftTag)}",
                     ctx.Start
                 );
             }
+
 
             return 0;
         }
@@ -677,6 +745,5 @@ namespace MiniCSharp.checker
 
             return TypeTag.Void;
         }
-
     }
 }

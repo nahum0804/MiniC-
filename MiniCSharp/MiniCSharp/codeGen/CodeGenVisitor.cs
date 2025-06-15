@@ -395,6 +395,18 @@ public class CodeGenVisitor : MiniCSParserBaseVisitor<object>
                     _il.EmitCall(OpCodes.Callvirt, removeAt, null);
                     return null;
                 }
+                case "ord":
+                {
+                    Visit(args[0]);
+                    _il.Emit(OpCodes.Conv_I4);
+                    return null;
+                }
+                case "chr":
+                {
+                    Visit(args[0]);
+                    _il.Emit(OpCodes.Conv_U2);
+                    return null;
+                }
                 default:
                 {
                     var sym = _symbols.Lookup(name) as MethodSymbol;
@@ -415,6 +427,12 @@ public class CodeGenVisitor : MiniCSParserBaseVisitor<object>
                     return null;
                 }
             }
+        }
+
+        if (ctx.NULL() != null)
+        {
+            _il.Emit(OpCodes.Ldnull);
+            return null;
         }
 
         if (ctx.NEW() != null && ctx.SBL().Length == 0)

@@ -1,14 +1,16 @@
-﻿class P 
-{
-    int sum(int a, int b)
-    {
-        return a + b;
-    }
+﻿class P {
+  void Main() {
+    // — declarar y luego asignar ord/chr/null —
+    string s;
+    s = null;
 
-    void Main()
-    {
-        int x;
-        x = sum(5, 20);
-        write(x);   // debe imprimir: 12
-    }
+    int[] arr;
+    arr = null;
+
+    char c;
+    c = chr(65);
+
+    int i;
+    i = ord('A');
+  }
 }
