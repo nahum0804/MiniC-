@@ -1,109 +1,186 @@
-﻿using System.Reflection;
+﻿using System;
+using System.IO;
+using System.Reflection;
 using System.Reflection.Emit;
+using System.Drawing;
+using System.Windows.Forms;
 using Antlr4.Runtime;
 using Antlr4.Runtime.Tree;
 using MiniCSharp.checker;
 using MiniCSharp.codeGen;
 using MiniCSharp.domain.errors;
 
-namespace MiniCSharp;
-
-class Program
+namespace MiniCSharpIDE
 {
-    private static void Main()
+    static class Program
     {
+        [STAThread]
+        static void Main()
         {
-           const string filePath = "Test.txt";
-
-            if (!File.Exists(filePath))
-            {
-                Console.WriteLine($"Archivo no encontrado: {Path.GetFullPath(filePath)}");
-                return;
-            }
-
-            var inputText = File.ReadAllText(filePath);
-
-            var inputStream = new AntlrInputStream(inputText);
-            var lexer       = new MiniCSLexer(inputStream);
-            lexer.RemoveErrorListeners();
-            lexer.AddErrorListener(new LexerErrorListener());
-
-            var tokens = new CommonTokenStream(lexer);
-
-            var parser = new MiniCSParser(tokens);
-            parser.RemoveErrorListeners();
-            parser.AddErrorListener(new ParserErrorListener());
-
-            var tree = parser.program();
-
-            Console.WriteLine("=== Árbol sintáctico ===");
-            PrintTree(tree, parser, 0);
-            Console.WriteLine("========================\n");
-
-            var symVisitor = new SymbolTableVisitor();
-            symVisitor.Visit(tree);
-            var table = symVisitor.Table;
-            table.Print();
-
-            var checker = new MiniCSChecker { Table = table };
-            checker.Visit(tree);
-
-            if (checker.HasErrors)
-            {
-                Console.ForegroundColor = ConsoleColor.Red;
-                Console.WriteLine("\n--- Errores semánticos ---");
-                foreach (var err in checker.Errors)
-                    Console.WriteLine(err);
-                Console.ResetColor();
-                return;
-            }
-
-            Console.ForegroundColor = ConsoleColor.Green;
-            Console.WriteLine("\n--- Análisis semántico exitoso. Sin errores. ---");
-            Console.ResetColor();
-
-
-            var asmName       = new AssemblyName("MiniCSharpProgram");
-            var asmBuilder    = AssemblyBuilder.DefineDynamicAssembly(asmName, AssemblyBuilderAccess.Run);
-            if (asmName.Name != null)
-            {
-                var moduleBuilder = asmBuilder.DefineDynamicModule(asmName.Name);
-
-                var codeGen = new CodeGenVisitor(moduleBuilder, table, checker.ExprTypes);
-                codeGen.Generate(tree);
-            }
-
-            var programType = asmBuilder.GetType("P");
-            var mainMethod  = programType?.GetMethod("Main", BindingFlags.Public | BindingFlags.Static);
-            mainMethod?.Invoke(null, null);
-
-            Console.ForegroundColor = ConsoleColor.Cyan;
-            Console.WriteLine("¡Ejecución exitosa del código generado en memoria!");
-            Console.ResetColor();
+            Application.EnableVisualStyles();
+            Application.SetCompatibleTextRenderingDefault(false);
+            Application.Run(new MainForm());
         }
     }
 
-    private static void PrintTree(IParseTree node, Parser parser, int indent)
+    public class MainForm : Form
     {
-        var pad = new string(' ', indent * 2);
+        private TextBox txtInput;
+        private Button btnCompileRun;
+        private RichTextBox rtbOutput;
 
-        switch (node)
+        public MainForm()
         {
-            case ParserRuleContext ctx:
+            Text = "MiniC# IDE";
+            Width = 1000;
+            Height = 700;
+            BackColor = Color.Black;
+            ForeColor = Color.White;
+
+            var layout = new TableLayoutPanel { Dock = DockStyle.Fill, BackColor = Color.Black, ForeColor = Color.White };
+            layout.RowCount = 3;
+            layout.ColumnCount = 1;
+            layout.RowStyles.Add(new RowStyle(SizeType.Percent, 60));
+            layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 40));
+            layout.RowStyles.Add(new RowStyle(SizeType.Percent, 40));
+
+            txtInput = new TextBox
             {
-                var ruleName = parser.RuleNames[ctx.RuleIndex];
-                Console.WriteLine($"{pad}{ruleName}");
-                break;
-            }
-            case ITerminalNode t:
-                Console.WriteLine($"{pad}{t.Symbol.Type}:'{t.GetText()}'");
-                break;
-            default:
-                Console.WriteLine($"{pad}{node.GetType().Name}: '{node.GetText()}'");
-                break;
+                Multiline = true,
+                ScrollBars = ScrollBars.Both,
+                Dock = DockStyle.Fill,
+                Font = new Font("Consolas", 10),
+                BackColor = Color.Black,
+                ForeColor = Color.White
+            };
+            layout.Controls.Add(txtInput, 0, 0);
+
+            btnCompileRun = new Button
+            {
+                Text = "Compilar/Correr",
+                Dock = DockStyle.Fill,
+                Height = 30,
+                BackColor = Color.DimGray,
+                ForeColor = Color.White
+            };
+            btnCompileRun.Click += BtnCompileRun_Click;
+            layout.Controls.Add(btnCompileRun, 0, 1);
+
+            rtbOutput = new RichTextBox
+            {
+                Dock = DockStyle.Fill,
+                ReadOnly = true,
+                Font = new Font("Consolas", 10),
+                BackColor = Color.Black,
+                ForeColor = Color.White
+            };
+            layout.Controls.Add(rtbOutput, 0, 2);
+
+            Controls.Add(layout);
+            txtInput.Text = GetSampleCode();
         }
 
-        for (var i = 0; i < node.ChildCount; i++)
-            PrintTree(node.GetChild(i), parser, indent + 1);
+        private void BtnCompileRun_Click(object sender, EventArgs e)
+        {
+            var originalOut = Console.Out;
+            var originalErr = Console.Error;
+            var sw = new StringWriter();
+            Console.SetOut(sw);
+            Console.SetError(sw);
+
+            try
+            {
+                var inputText = txtInput.Text;
+                var inputStream = new AntlrInputStream(inputText);
+                var lexer = new MiniCSLexer(inputStream);
+                lexer.RemoveErrorListeners();
+                lexer.AddErrorListener(new LexerErrorListener());
+                var tokens = new CommonTokenStream(lexer);
+                var parser = new MiniCSParser(tokens);
+                parser.RemoveErrorListeners();
+                parser.AddErrorListener(new ParserErrorListener());
+                var tree = parser.program();
+
+                var symVisitor = new SymbolTableVisitor();
+                symVisitor.Visit(tree);
+                var table = symVisitor.Table;
+                var checker = new MiniCSChecker { Table = table };
+                checker.Visit(tree);
+
+                if (checker.HasErrors)
+                { 
+                    foreach (var err in checker.Errors)
+                        Console.Error.WriteLine(err);
+                }
+                else
+                {
+                    var asmName = new AssemblyName("MiniCSharpProgram");
+                    var asmBuilder = AssemblyBuilder.DefineDynamicAssembly(asmName, AssemblyBuilderAccess.Run);
+                    var moduleBuilder = asmBuilder.DefineDynamicModule(asmName.Name);
+                    var codeGen = new CodeGenVisitor(moduleBuilder, table, checker.ExprTypes);
+                    codeGen.Generate(tree);
+
+                    var programType = asmBuilder.GetType("P");
+                    var mainMethod = programType?.GetMethod("Main", BindingFlags.Public | BindingFlags.Static);
+                    mainMethod?.Invoke(null, null);
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.Error.WriteLine("Error de ejecución: " + ex.Message);
+            }
+            finally
+            {
+                Console.SetOut(originalOut);
+                Console.SetError(originalErr);
+
+                rtbOutput.Clear();
+               
+                rtbOutput.SelectionColor = Color.LimeGreen;
+                rtbOutput.AppendText("Compiled successfully - Happy coding :) \n \n" + Environment.NewLine);
+                rtbOutput.SelectionColor = Color.White;
+                rtbOutput.AppendText(sw.GetStringBuilder().ToString());
+                rtbOutput.SelectionColor = Color.LimeGreen;
+                rtbOutput.AppendText("\n\n============ Fin de la ejecucion ============");
+                rtbOutput.SelectionColor = Color.LimeGreen;
+                rtbOutput.AppendText("fin de la ejecucion" + Environment.NewLine);
+                
+                // Logo ASCII "Mini C"
+                rtbOutput.SelectionColor = Color.Cyan;
+                rtbOutput.AppendText(@"
+ __  __     
+|  \/  (_)     (_)
+| \  / |_| |__ | |
+| |\/| | |  _ \  |
+| |  | | | | | | |
+|_|  |_|_|_| |_|_|
+            __     __
+  ____   _ |  |__ |  |_
+ / ___| |_     __      _|
+| |      _|   |__ |   |_
+| |___  | _    __      _|
+ \____|    |__|   |__ |
+" + Environment.NewLine);
+                rtbOutput.SelectionColor = Color.White;
+            }
+        }
+
+        private string GetSampleCode()
+        {
+            return @"class P 
+{
+    int sum(int a, int b)
+    {
+        return a + b;
+    }
+
+    void Main()
+    {
+        int x; 
+        x = sum(5, 40);
+        write(x);
+    }
+}";
+        }
     }
 }
