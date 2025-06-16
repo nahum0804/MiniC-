@@ -121,10 +121,10 @@ namespace MiniCSharpIDE
 
             _btnCompileRun = new Button
             {
-                Text = "Compilar / Correr (F5)",
+                Text = "Compilar / Correr",
                 Dock = DockStyle.Fill,
-                BackColor = Color.DimGray,
-                ForeColor = Color.White
+                BackColor = Color.Cyan,
+                ForeColor = Color.Black
             };
             _btnCompileRun.Click += BtnCompileRun_Click;
             layout.Controls.Add(_btnCompileRun, 0, 2);
@@ -158,17 +158,17 @@ namespace MiniCSharpIDE
             _txtSource.Text = GetSampleCode();
         }
 
-        public sealed override Color BackColor
-        {
-            get => base.BackColor;
-            set => base.BackColor = value;
-        }
+        //public sealed override Color BackColor
+        //{
+        //    get => base.BackColor;
+        //    set => base.BackColor = value;
+        //}
 
-        [AllowNull] public sealed override string Text
-        {
-            get => base.Text;
-            set => base.Text = value;
-        }
+        //[AllowNull] public sealed override string Text
+        //{
+        //   get => base.Text;
+        //    set => base.Text = value;
+        //}
 
         private void TxtStdin_KeyDown(object? sender, KeyEventArgs e)
         {
@@ -177,7 +177,7 @@ namespace MiniCSharpIDE
 
             _rtbOutput.Invoke(new Action(() =>
             {
-                _rtbOutput.SelectionColor = Color.Lime;   // o el color que prefieras
+                _rtbOutput.SelectionColor = Color.Lime;  
                 _rtbOutput.AppendText(_txtStdin.Text + Environment.NewLine);
                 _rtbOutput.ScrollToCaret();
             }));
@@ -220,6 +220,22 @@ namespace MiniCSharpIDE
                 {
                     _rtbOutput.SelectionColor = Color.LimeGreen;
                     _rtbOutput.AppendText("\n============ Fin de la ejecución ============\n");
+                    _rtbOutput.SelectionColor = Color.Cyan;
+                    _rtbOutput.AppendText(@"
+
+ __  __     
+|  \/  (_)     (_)
+| \  / |_| |__ | |
+| |\/| | |  _ \  |
+| |  | | | | | | |
+|_|  |_|_|_| |_|_|
+            __     __
+  ____   _ |  |__ |  |_
+ / ___| |_     __      _|
+| |      _|   |__ |   |_
+| |___  | _    __      _|
+ \____|    |__|   |__ |
+" + Environment.NewLine);
                     _rtbOutput.SelectionColor = Color.White;
                 });
 
