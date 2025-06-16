@@ -1,4 +1,5 @@
-﻿using System.Reflection;
+﻿using System.Globalization;
+using System.Reflection;
 using System.Reflection.Emit;
 using System.Text.RegularExpressions;
 using Antlr4.Runtime;
@@ -28,6 +29,9 @@ public class CodeGenVisitor : MiniCSParserBaseVisitor<object>
 
     private readonly Dictionary<string, MethodBuilder> _methodBuilders = new();
 
+    // Un LocalBuilder auxiliar para valores temporales de int
+    private LocalBuilder _tmpInt;
+
 
     public CodeGenVisitor(ModuleBuilder module, SymbolTable symbols,
         Dictionary<ParserRuleContext, int> exprTypes)
@@ -39,55 +43,73 @@ public class CodeGenVisitor : MiniCSParserBaseVisitor<object>
 
     public void Generate(MiniCSParser.ProgramContext ctx)
     {
+        // 1) Definir la clase principal P
         _currentType = _module.DefineType(
             ctx.ident().GetText(),
-            TypeAttributes.Public | TypeAttributes.Class);
+            TypeAttributes.Public | TypeAttributes.Class
+        );
 
-
+        // 2) Para cada classDecl (clases anidadas)
         foreach (var cd in ctx.classDecl())
         {
             var className = cd.ident().GetText();
             var nested = _currentType.DefineNestedType(
                 className,
-                TypeAttributes.NestedPublic);
+                TypeAttributes.NestedPublic | TypeAttributes.Class
+            );
 
+            // → Aquí: registrar TODOS los campos de esa clase anidada
             foreach (var vd in cd.varDecl())
+            foreach (var id in vd.ident())
             {
-                var fieldType = MapType(vd.type());
-                foreach (var id in vd.ident())
-                {
-                    var fb = nested.DefineField(
-                        id.GetText(),
-                        fieldType,
-                        FieldAttributes.Public);
-                    _fieldBuilders[(className, id.GetText())] = fb;
-                }
+                var fb = nested.DefineField(
+                    id.GetText(),
+                    MapType(vd.type()),
+                    FieldAttributes.Public
+                );
+                _fieldBuilders[(className, id.GetText())] = fb;
             }
 
+            // luego defines el constructor como ya lo hacías
             var ctorBuilder = nested.DefineConstructor(
                 MethodAttributes.Public,
                 CallingConventions.Standard,
-                Type.EmptyTypes);
+                Type.EmptyTypes
+            );
             var ilc = ctorBuilder.GetILGenerator();
             ilc.Emit(OpCodes.Ldarg_0);
             ilc.Emit(OpCodes.Call,
                 typeof(object).GetConstructor(Type.EmptyTypes)!);
             ilc.Emit(OpCodes.Ret);
-
             _ctorBuilders[className] = ctorBuilder;
+
             _nestedTypes[className] = nested;
         }
 
-        foreach (var nested in _nestedTypes.Values)
+        // 3) Registrar LOS CAMPOS de la clase principal (los varDecl que están fuera de cualquier classDecl)
+        foreach (var vd in ctx.varDecl())
+        foreach (var id in vd.ident())
         {
-            nested.CreateType();
+            var fb = _currentType.DefineField(
+                id.GetText(),
+                MapType(vd.type()),
+                FieldAttributes.Public
+            );
+            _fieldBuilders[(ctx.ident().GetText(), id.GetText())] = fb;
         }
 
+        // 4) Crear los nested types
+        foreach (var nestedTb in _nestedTypes.Values)
+            nestedTb.CreateType();
+
+        // 5) Generar los métodos (Main, etc.)
         foreach (var m in ctx.methodDecl())
             VisitMethodDecl(m);
 
+        // 6) Cerrar la clase principal
         _currentType.CreateType();
     }
+
 
     public override object VisitMethodDecl(MiniCSParser.MethodDeclContext ctx)
     {
@@ -120,6 +142,10 @@ public class CodeGenVisitor : MiniCSParserBaseVisitor<object>
         );
         _methodBuilders[name] = mb;
         _il = mb.GetILGenerator();
+
+        // ————— Aquí declaramos el local auxiliar para ++/-- de arrays anidados —————
+        _tmpInt = _il.DeclareLocal(typeof(int));
+
         _locals.Clear();
 
         // 4) Declarar variables locales del cuerpo
@@ -182,27 +208,20 @@ public class CodeGenVisitor : MiniCSParserBaseVisitor<object>
     }
 
 
-    // 2) Override para returnStmt
     public override object VisitReturnStmt(MiniCSParser.ReturnStmtContext ctx)
     {
         if (ctx.expr() != null)
         {
             Visit(ctx.expr());
-            // el valor ya está en la pila, así que solo falt un Ret
         }
 
         _il.Emit(OpCodes.Ret);
         return null;
     }
 
-// 3) Override para cast
     public override object VisitCast(MiniCSParser.CastContext ctx)
     {
-        // e.g. (int) expr
         var targetClr = MapType(ctx.type());
-        // Evaluar la expresión entre paréntesis
-        // (en tu ExprVisitor, llamarías a VisitCast antes de los terminos)
-        // Aquí asumimos que el valor original ya está en la pila
         if (targetClr == typeof(int))
             _il.Emit(OpCodes.Conv_I4);
         else if (targetClr == typeof(char))
@@ -262,42 +281,112 @@ public class CodeGenVisitor : MiniCSParserBaseVisitor<object>
     {
         var des = ctx.designator();
 
-        if (des.DOT().Length > 0)
+        // 1) Asignación a obj.field = expr;
+        if (des.DOT().Length > 0 && des.SBL().Length == 0)
         {
             var objName = des.ident(0).GetText();
-            var lbObj = _locals[objName];
-            _il.Emit(OpCodes.Ldloc, lbObj.LocalIndex);
+
+            // cargar referencia al objeto
+            if (_locals.TryGetValue(objName, out var lbObj))
+                _il.Emit(OpCodes.Ldloc, lbObj.LocalIndex);
+            else
+            {
+                _il.Emit(OpCodes.Ldarg_0); // this
+                var fb0 = _fieldBuilders[(_currentType.Name, objName)];
+                _il.Emit(OpCodes.Ldfld, fb0);
+            }
+
+            // valor derecho
             Visit(ctx.expr());
 
+            // almacenar
             var fieldName = des.ident(1).GetText();
             var classTag = _symbols.Lookup(objName)!.TypeTag;
             var className = TypeTag.ClassNameFromTag(classTag)!;
             var fb = _fieldBuilders[(className, fieldName)];
             _il.Emit(OpCodes.Stfld, fb);
+            return null;
+        }
+        
+        if (des.DOT().Length > 0 && des.SBL().Length > 0)
+        {
+            string objName   = des.ident(0).GetText();   //  val
+            string fieldName = des.ident(1).GetText();   //  neg
+
+            /* A) cargar la lista */
+            if (_locals.TryGetValue(objName, out var lbObj))
+                _il.Emit(OpCodes.Ldloc, lbObj.LocalIndex);       // local val
+            else
+            {
+                _il.Emit(OpCodes.Ldarg_0);                       // this.val
+                _il.Emit(OpCodes.Ldfld, _fieldBuilders[(_currentType.Name, objName)]);
+            }
+
+            // bajar al campo  .neg
+            var classTag  = _symbols.Lookup(objName)!.TypeTag;
+            var className = TypeTag.ClassNameFromTag(classTag)!;
+            var fb        = _fieldBuilders[(className, fieldName)];
+            _il.Emit(OpCodes.Ldfld, fb);
+
+            /* B) índice y valor */
+            Visit(des.expr(0));         // índice
+            Visit(ctx.expr());          // nuevo valor
+
+            /* C) set_Item */
+            EmitListSet(fb.FieldType);  // usa List<int>, List<char>, …
 
             return null;
         }
 
+        // 2) Asignación a arreglo arr[index] = expr;
         if (des.SBL().Length > 0)
         {
             var arrName = des.ident(0).GetText();
-            var arrLb = _locals[arrName];
-            _il.Emit(OpCodes.Ldloc, arrLb.LocalIndex);
+            Type listType; // <<< nuevo
 
-            Visit(des.expr(0));
+            /* 2-A) cargar la lista (local o campo) */
+            if (_locals.TryGetValue(arrName, out var lbArr)) // lista local
+            {
+                _il.Emit(OpCodes.Ldloc, lbArr.LocalIndex);
+                listType = lbArr.LocalType; // <<< cambiado
+            }
+            else // lista es campo this.arr
+            {
+                _il.Emit(OpCodes.Ldarg_0);
+                var fbArr = _fieldBuilders[(_currentType.Name, arrName)];
+                _il.Emit(OpCodes.Ldfld, fbArr);
+                listType = fbArr.FieldType; // <<< cambiado
+            }
 
-            Visit(ctx.expr());
+            /* 2-B) índice y valor */
+            Visit(des.expr(0)); // índice
+            Visit(ctx.expr()); // nuevo valor
 
-            _il.Emit(OpCodes.Stelem_I4);
+            /* 2-C) set_Item(list, idx, val) */
+            EmitListSet(listType); // <<< sustituye Stelem_I4
             return null;
         }
 
+        // 3) Asignación simple: name = expr;
+        var name = des.ident(0).GetText();
+
+        // 3.a) campo de this
+        if (!_locals.ContainsKey(name)
+            && _fieldBuilders.TryGetValue((_currentType.Name, name), out var fbField))
+        {
+            _il.Emit(OpCodes.Ldarg_0);
+            Visit(ctx.expr());
+            _il.Emit(OpCodes.Stfld, fbField);
+            return null;
+        }
+
+        // 3.b) variable local
         Visit(ctx.expr());
-        var simpleName = des.ident(0).GetText();
-        var lbVar = _locals[simpleName];
+        var lbVar = _locals[name];
         _il.Emit(OpCodes.Stloc, lbVar.LocalIndex);
         return null;
     }
+
 
     public override object VisitWhileStmt(MiniCSParser.WhileStmtContext ctx)
     {
@@ -428,6 +517,7 @@ public class CodeGenVisitor : MiniCSParserBaseVisitor<object>
                 }
             }
         }
+        
 
         if (ctx.NULL() != null)
         {
@@ -462,27 +552,52 @@ public class CodeGenVisitor : MiniCSParserBaseVisitor<object>
         }
 
 
+        /*  ──────  (3) designator sin paréntesis ──────  */
         if (ctx.designator() != null && ctx.LEFTP() == null)
         {
-            var des = ctx.designator();
-            var baseName = des.ident(0).GetText();
+            var des       = ctx.designator();
+            var baseName  = des.ident(0).GetText();
 
-            var lb = _locals[baseName];
-            _il.Emit(OpCodes.Ldloc, lb.LocalIndex);
-
-
-            if (des.DOT().Length > 0)
+            /* 3-A) cargar la referencia (local, campo o this) */
+            if (_locals.TryGetValue(baseName, out var lb))
+                _il.Emit(OpCodes.Ldloc, lb.LocalIndex);
+            else if (_fieldBuilders.TryGetValue((_currentType.Name, baseName), out var fb0))
             {
-                var fieldName = des.ident(1).GetText();
-                var sym = _symbols.Lookup(baseName)!;
+                _il.Emit(OpCodes.Ldarg_0);
+                _il.Emit(OpCodes.Ldfld, fb0);
+            }
+            else
+                throw new NotSupportedException($"Variable o campo '{baseName}' no encontrado.");
+
+            /* 3-B) sub-casos encadenados */
+            if (des.DOT().Length > 0 && des.SBL().Length > 0)
+            {
+                /* ---------- obj.field[index]  ---------- */
+                string fieldName = des.ident(1).GetText();
+
+                var classTag  = _symbols.Lookup(baseName)!.TypeTag;
+                var className = TypeTag.ClassNameFromTag(classTag)!;
+                var fb        = _fieldBuilders[(className, fieldName)];
+                _il.Emit(OpCodes.Ldfld, fb);          // ya cargamos obj, ahora su campo-lista
+
+                Visit(des.expr(0));                   // índice
+                EmitListGet(fb.FieldType);            // List<T>.get_Item
+            }
+            else if (des.DOT().Length > 0)
+            {
+                /* ---------- obj.field  ---------- */
+                string fieldName = des.ident(1).GetText();
+                var sym       = _symbols.Lookup(baseName)!;
                 var className = TypeTag.ClassNameFromTag(sym.TypeTag)!;
-                var fb = _fieldBuilders[(className, fieldName)];
+                var fb        = _fieldBuilders[(className, fieldName)];
                 _il.Emit(OpCodes.Ldfld, fb);
             }
             else if (des.SBL().Length > 0)
             {
-                Visit(des.expr(0));
-                _il.Emit(OpCodes.Ldelem_I4);
+                /* ---------- obj[index]  ---------- */
+                Visit(des.expr(0));                       // índice
+                var listType = VisitAndGetListType(des.expr(0));
+                EmitListGet(listType);                    // List<T>.get_Item
             }
 
             return null;
@@ -534,14 +649,22 @@ public class CodeGenVisitor : MiniCSParserBaseVisitor<object>
 
         if (ctx.FLOATLIT() != null)
         {
-            float f = float.Parse(ctx.FLOATLIT().GetText().TrimEnd('f', 'F'));
+            // Parse con invariant culture y sin sufijo f/F
+            float f = float.Parse(
+                ctx.FLOATLIT().GetText().TrimEnd('f', 'F'),
+                CultureInfo.InvariantCulture
+            );
             _il.Emit(OpCodes.Ldc_R4, f);
             return null;
         }
 
         if (ctx.DOUBLELIT() != null)
         {
-            double d = double.Parse(ctx.DOUBLELIT().GetText());
+            // Parse con invariant culture para aceptar el punto decimal
+            double d = double.Parse(
+                ctx.DOUBLELIT().GetText(),
+                CultureInfo.InvariantCulture
+            );
             _il.Emit(OpCodes.Ldc_R8, d);
             return null;
         }
@@ -660,30 +783,225 @@ public class CodeGenVisitor : MiniCSParserBaseVisitor<object>
 
     public override object VisitIncStmt(MiniCSParser.IncStmtContext ctx)
     {
-        var name = ctx.designator().GetText();
-        if (!_locals.TryGetValue(name, out var lb))
-            throw new InvalidOperationException($"Variable '{name}' no declarada.");
+        var des = ctx.designator();
 
-        _il.Emit(OpCodes.Ldloc, lb.LocalIndex);
-        _il.Emit(OpCodes.Ldc_I4_1);
-        _il.Emit(OpCodes.Add);
-        _il.Emit(OpCodes.Stloc, lb.LocalIndex);
+        // 1) val.field[index]++
+        if (des.DOT().Length > 0 && des.SBL().Length > 0)
+        {
+            string objName = des.ident(0).GetText();
+            string fieldName = des.ident(1).GetText();
 
-        return null;
+            /* (1-A) leer viejo valor → _tmpInt */
+            // cargar lista (this.val.pos  o  local val.pos)
+            if (_locals.TryGetValue(objName, out var lbObj))
+                _il.Emit(OpCodes.Ldloc, lbObj.LocalIndex);
+            else
+            {
+                _il.Emit(OpCodes.Ldarg_0);
+                _il.Emit(OpCodes.Ldfld, _fieldBuilders[(_currentType.Name, objName)]);
+            }
+
+            // llegar al campo .pos
+            var classTag = _symbols.Lookup(objName)!.TypeTag;
+            var className = TypeTag.ClassNameFromTag(classTag)!;
+            var fb = _fieldBuilders[(className, fieldName)];
+            _il.Emit(OpCodes.Ldfld, fb);
+
+            // índice
+            Visit(des.expr(0));
+
+            // obtener listType del campo
+            Type listType = fb.FieldType; // <<< nuevo
+            EmitListGet(listType); // <<< sustituye Ldelem_I4
+
+            // +1 y guardar en tmp
+            _il.Emit(OpCodes.Ldc_I4_1);
+            _il.Emit(OpCodes.Add);
+            _il.Emit(OpCodes.Stloc, _tmpInt);
+
+            /* (1-B) escribir _tmpInt como nuevo valor */
+            // recargar lista
+            if (_locals.TryGetValue(objName, out lbObj))
+                _il.Emit(OpCodes.Ldloc, lbObj.LocalIndex);
+            else
+            {
+                _il.Emit(OpCodes.Ldarg_0);
+                _il.Emit(OpCodes.Ldfld, _fieldBuilders[(_currentType.Name, objName)]);
+            }
+
+            _il.Emit(OpCodes.Ldfld, fb);
+            Visit(des.expr(0)); // índice
+            _il.Emit(OpCodes.Ldloc, _tmpInt); // valor
+            EmitListSet(listType); // <<< sustituye Stelem_I4
+            return null;
+        }
+
+        // 2) val.field++
+        if (des.DOT().Length > 0 && des.SBL().Length == 0)
+        {
+            string objName = des.ident(0).GetText();
+            string fieldName = des.ident(1).GetText();
+            var fb = _fieldBuilders[(_currentType.Name, objName)];
+
+            // Carga this.val o local val
+            if (_locals.TryGetValue(objName, out var lbObj))
+                _il.Emit(OpCodes.Ldloc, lbObj.LocalIndex);
+            else
+                _il.Emit(OpCodes.Ldarg_0);
+
+            // Duplica objRef
+            _il.Emit(OpCodes.Dup);
+            // Lee viejoValor
+            _il.Emit(OpCodes.Ldfld, fb);
+            // +1
+            _il.Emit(OpCodes.Ldc_I4_1);
+            _il.Emit(OpCodes.Add);
+            // Stfld consume objRef,newValue
+            _il.Emit(OpCodes.Stfld, fb);
+            return null;
+        }
+
+        // 3) arr[index]++
+        if (des.SBL().Length > 0 && des.DOT().Length == 0)
+        {
+            string arrName = des.ident(0).GetText();
+            var lbArr = _locals[arrName];
+            Type listType = lbArr.LocalType; // <<< nuevo
+
+            // leer viejo
+            _il.Emit(OpCodes.Ldloc, lbArr.LocalIndex);
+            Visit(des.expr(0));
+            EmitListGet(listType); // <<< Ldelem_I4 → EmitListGet
+
+            _il.Emit(OpCodes.Ldc_I4_1);
+            _il.Emit(OpCodes.Add);
+            _il.Emit(OpCodes.Stloc, _tmpInt);
+
+            // escribir nuevo
+            _il.Emit(OpCodes.Ldloc, lbArr.LocalIndex);
+            Visit(des.expr(0));
+            _il.Emit(OpCodes.Ldloc, _tmpInt);
+            EmitListSet(listType); // <<< Stelem_I4 → EmitListSet
+            return null;
+        }
+
+        // 4) x++
+        {
+            var name = des.ident(0).GetText();
+            if (!_locals.TryGetValue(name, out var lb))
+                throw new InvalidOperationException($"Variable '{name}' no declarada.");
+
+            _il.Emit(OpCodes.Ldloc, lb.LocalIndex);
+            _il.Emit(OpCodes.Ldc_I4_1);
+            _il.Emit(OpCodes.Add);
+            _il.Emit(OpCodes.Stloc, lb.LocalIndex);
+            return null;
+        }
     }
+
 
     public override object VisitDecStmt(MiniCSParser.DecStmtContext ctx)
     {
-        var name = ctx.designator().GetText();
-        if (!_locals.TryGetValue(name, out var lb))
-            throw new InvalidOperationException($"Variable '{name}' no declarada.");
+        var des = ctx.designator();
 
-        _il.Emit(OpCodes.Ldloc, lb.LocalIndex);
-        _il.Emit(OpCodes.Ldc_I4_1);
-        _il.Emit(OpCodes.Sub);
-        _il.Emit(OpCodes.Stloc, lb.LocalIndex);
+        // 1) obj.field[index]--
+        if (des.DOT().Length > 0 && des.SBL().Length > 0)
+        {
+            string objName = des.ident(0).GetText();
+            string fieldName = des.ident(1).GetText();
 
-        return null;
+            // cargar lista
+            if (_locals.TryGetValue(objName, out var lbObj))
+                _il.Emit(OpCodes.Ldloc, lbObj.LocalIndex);
+            else
+            {
+                _il.Emit(OpCodes.Ldarg_0);
+                _il.Emit(OpCodes.Ldfld, _fieldBuilders[(_currentType.Name, objName)]);
+            }
+
+            var classTag = _symbols.Lookup(objName)!.TypeTag;
+            var className = TypeTag.ClassNameFromTag(classTag)!;
+            var fb = _fieldBuilders[(className, fieldName)];
+            _il.Emit(OpCodes.Ldfld, fb);
+
+            Visit(des.expr(0)); // índice
+            Type listType = fb.FieldType; // <<< nuevo
+            EmitListGet(listType); // <<< Ldelem_I4 → EmitListGet
+
+            _il.Emit(OpCodes.Ldc_I4_1);
+            _il.Emit(OpCodes.Sub);
+            _il.Emit(OpCodes.Stloc, _tmpInt);
+
+            // escribir
+            if (_locals.TryGetValue(objName, out lbObj))
+                _il.Emit(OpCodes.Ldloc, lbObj.LocalIndex);
+            else
+            {
+                _il.Emit(OpCodes.Ldarg_0);
+                _il.Emit(OpCodes.Ldfld, _fieldBuilders[(_currentType.Name, objName)]);
+            }
+
+            _il.Emit(OpCodes.Ldfld, fb);
+            Visit(des.expr(0));
+            _il.Emit(OpCodes.Ldloc, _tmpInt);
+            EmitListSet(listType); // <<< Stelem_I4 → EmitListSet
+            return null;
+        }
+
+        // obj.field--
+        if (des.DOT().Length > 0 && des.SBL().Length == 0)
+        {
+            string objName = des.ident(0).GetText();
+            string fieldName = des.ident(1).GetText();
+            var fb = _fieldBuilders[(_currentType.Name, objName)];
+
+            if (_locals.TryGetValue(objName, out var lbObj))
+                _il.Emit(OpCodes.Ldloc, lbObj.LocalIndex);
+            else
+                _il.Emit(OpCodes.Ldarg_0);
+
+            _il.Emit(OpCodes.Dup);
+            _il.Emit(OpCodes.Ldfld, fb);
+            _il.Emit(OpCodes.Ldc_I4_1);
+            _il.Emit(OpCodes.Sub);
+            _il.Emit(OpCodes.Stfld, fb);
+            return null;
+        }
+
+        // 3) arr[index]--
+        if (des.SBL().Length > 0 && des.DOT().Length == 0)
+        {
+            string arrName = des.ident(0).GetText();
+            var lbArr = _locals[arrName];
+            Type listType = lbArr.LocalType; // <<< nuevo
+
+            _il.Emit(OpCodes.Ldloc, lbArr.LocalIndex);
+            Visit(des.expr(0));
+            EmitListGet(listType); // <<< Ldelem_I4 → EmitListGet
+
+            _il.Emit(OpCodes.Ldc_I4_1);
+            _il.Emit(OpCodes.Sub);
+            _il.Emit(OpCodes.Stloc, _tmpInt);
+
+            _il.Emit(OpCodes.Ldloc, lbArr.LocalIndex);
+            Visit(des.expr(0));
+            _il.Emit(OpCodes.Ldloc, _tmpInt);
+            EmitListSet(listType); // <<< Stelem_I4 → EmitListSet
+            return null;
+        }
+
+        // 4) x--
+        {
+            var name = des.ident(0).GetText();
+            if (!_locals.TryGetValue(name, out var lb))
+                throw new InvalidOperationException($"Variable '{name}' no declarada.");
+
+            _il.Emit(OpCodes.Ldloc, lb.LocalIndex);
+            _il.Emit(OpCodes.Ldc_I4_1);
+            _il.Emit(OpCodes.Sub);
+            _il.Emit(OpCodes.Stloc, lb.LocalIndex);
+            return null;
+        }
     }
 
 
@@ -813,6 +1131,19 @@ public class CodeGenVisitor : MiniCSParserBaseVisitor<object>
         return typeof(List<>).MakeGenericType(baseClr);
     }
 
+    private void EmitListGet(Type listType)
+    {
+        var getItem = listType.GetProperty("Item")!.GetGetMethod()!;
+        _il.EmitCall(OpCodes.Callvirt, getItem, null);
+    }
+
+    private void EmitListSet(Type listType)
+    {
+        var setItem = listType.GetProperty("Item")!.GetSetMethod()!;
+        _il.EmitCall(OpCodes.Callvirt, setItem, null); // pila: lista, índice, nuevoValor
+    }
+
+
     public override object VisitForInit(MiniCSParser.ForInitContext ctx)
     {
         Visit(ctx.expr());
@@ -852,6 +1183,7 @@ public class CodeGenVisitor : MiniCSParserBaseVisitor<object>
             ? typeof(List<>).MakeGenericType(baseClr)
             : baseClr;
     }
+    
 
     private Type MapTagToClr(int tag)
     {
