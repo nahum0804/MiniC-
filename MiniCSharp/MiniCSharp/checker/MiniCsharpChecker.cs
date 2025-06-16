@@ -18,7 +18,11 @@ namespace MiniCSharp.checker
 
         private int _switchDepth = 0;
 
-      
+
+        private bool IsNumericType(int tag) =>
+            tag is TypeTag.Int or TypeTag.Float or TypeTag.Double;
+
+
         public Dictionary<ParserRuleContext, int> ExprTypes { get; } = new();
 
         private void Report(string msg, IToken tok)
@@ -128,10 +132,10 @@ namespace MiniCSharp.checker
                 );
             }
 
-            for (int i = 0; i < args.Length && i < sym.ParamTypeTags.Count; i++)
+            for (var i = 0; i < args.Length && i < sym.ParamTypeTags.Count; i++)
             {
-                int actual = (int)Visit(args[i]);
-                int esperado = sym.ParamTypeTags[i];
+                var actual = (int)Visit(args[i]);
+                var esperado = sym.ParamTypeTags[i];
                 if (actual != esperado)
                 {
                     Report(
@@ -182,21 +186,33 @@ namespace MiniCSharp.checker
             }
             else if (ctx.cast() != null)
             {
-                t0 = (int)VisitCast(ctx.cast());
-                int actual = (int)Visit(ctx.term(0));
-                if (actual != t0)
-                    Report($"No se puede castear de {TypeTag.PrettyPrint(actual)} a {TypeTag.PrettyPrint(t0)}",
-                        ctx.Start);
+                var toTag = (int)VisitCast(ctx.cast());
+                var actual = (int)Visit(ctx.term(0));
+
+                bool IsNumeric(int tag) =>
+                    tag == TypeTag.Int
+                    || tag == TypeTag.Float
+                    || tag == TypeTag.Double;
+
+                if (!(IsNumeric(actual) && IsNumeric(toTag)))
+                {
+                    Report(
+                        $"No se puede castear de {TypeTag.PrettyPrint(actual)} a {TypeTag.PrettyPrint(toTag)}",
+                        ctx.Start
+                    );
+                }
+                t0 = toTag;
             }
+
             else
             {
                 t0 = (int)Visit(ctx.term(0));
             }
 
 
-            for (int i = 1; i < ctx.term().Length; i++)
+            for (var i = 1; i < ctx.term().Length; i++)
             {
-                int ti = (int)Visit(ctx.term(i));
+                var ti = (int)Visit(ctx.term(i));
 
                 if ((t0 != TypeTag.Int && t0 != TypeTag.Float && t0 != TypeTag.Double) ||
                     (ti != TypeTag.Int && ti != TypeTag.Float && ti != TypeTag.Double))
@@ -508,11 +524,12 @@ namespace MiniCSharp.checker
 
         public override object VisitCast(MiniCSParser.CastContext ctx)
         {
+            // Ejemplo: (int)
+            // 1) obtener el tag destino
             string typeText = ctx.type().GetText();
             int toTag = TypeTag.FromTypeNameWithBrackets(typeText);
-
+            // 2) registra
             ExprTypes[ctx] = toTag;
-
             return toTag;
         }
 
@@ -599,9 +616,9 @@ namespace MiniCSharp.checker
             if (rightTag == TypeTag.Unknown)
             {
                 bool isRef =
-                    leftTag == TypeTag.String           // string es referencia
-                    || leftTag >= TypeTag.ListBase        // cualquier arreglo (int[], char[], etc.)
-                    || TypeTag.IsCustomClass(leftTag);    // cualquier clase definida
+                    leftTag == TypeTag.String // string es referencia
+                    || leftTag >= TypeTag.ListBase // cualquier arreglo (int[], char[], etc.)
+                    || TypeTag.IsCustomClass(leftTag); // cualquier clase definida
 
                 if (!isRef)
                     Report($"No se puede asignar null a {TypeTag.PrettyPrint(leftTag)}", ctx.Start);

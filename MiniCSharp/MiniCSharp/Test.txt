@@ -1,16 +1,37 @@
-﻿class P {
-  void Main() {
-    // — declarar y luego asignar ord/chr/null —
-    string s;
-    s = null;
+﻿class P
+{
+  class Table {
+    int[] pos;
+    int[] neg;
+  }
+  
+  Table val;
+  
+  void Main ()
+  {
+    int x, i, size;
+    size = 10;
 
-    int[] arr;
-    arr = null;
+    // Inicializar val
+    val = new Table();               // paréntesis obligatorios
+    val.pos = new int[size];
+    val.neg = new int[size];
+    i = (int)0.0;                    
 
-    char c;
-    c = chr(65);
+    while (i < size) {
+      add(val.pos, 0);
+      val.neg[i] = 0;
+      i++;
+    }
 
-    int i;
-    i = ord('A');
+    /* Comentario de prueba /* anidado */ fin */
+    read(x);
+    while (-size < x && x < size) {
+      if (0 <= x) val.pos[x]++;
+      else        val.neg[-x]++;
+      read(x);
+      write("Valor de x: "); 
+      write(x,2);
+    }
   }
 }
