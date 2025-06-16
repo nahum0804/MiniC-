@@ -37,7 +37,8 @@ namespace MiniCSharpIDE
             BackColor = Color.Black;
             ForeColor = Color.White;
 
-            var layout = new TableLayoutPanel { Dock = DockStyle.Fill, BackColor = Color.Black, ForeColor = Color.White };
+            var layout = new TableLayoutPanel
+                { Dock = DockStyle.Fill, BackColor = Color.Black, ForeColor = Color.White };
             layout.RowCount = 3;
             layout.ColumnCount = 1;
             layout.RowStyles.Add(new RowStyle(SizeType.Percent, 60));
@@ -108,7 +109,7 @@ namespace MiniCSharpIDE
                 checker.Visit(tree);
 
                 if (checker.HasErrors)
-                { 
+                {
                     foreach (var err in checker.Errors)
                         Console.Error.WriteLine(err);
                 }
@@ -135,7 +136,7 @@ namespace MiniCSharpIDE
                 Console.SetError(originalErr);
 
                 rtbOutput.Clear();
-               
+
                 rtbOutput.SelectionColor = Color.LimeGreen;
                 rtbOutput.AppendText("Compiled successfully - Happy coding :) \n \n" + Environment.NewLine);
                 rtbOutput.SelectionColor = Color.White;
@@ -144,7 +145,7 @@ namespace MiniCSharpIDE
                 rtbOutput.AppendText("\n\n============ Fin de la ejecucion ============");
                 rtbOutput.SelectionColor = Color.LimeGreen;
                 rtbOutput.AppendText("fin de la ejecucion" + Environment.NewLine);
-                
+
                 // Logo ASCII "Mini C"
                 rtbOutput.SelectionColor = Color.Cyan;
                 rtbOutput.AppendText(@"
@@ -167,7 +168,12 @@ namespace MiniCSharpIDE
 
         private string GetSampleCode()
         {
-            return @"class P 
+            const string filePath = "Test.txt";
+
+            if (!File.Exists(filePath))
+            {
+                Console.WriteLine($"Archivo no encontrado: {Path.GetFullPath(filePath)}");
+                return @"class P 
 {
     int sum(int a, int b)
     {
@@ -181,6 +187,10 @@ namespace MiniCSharpIDE
         write(x);
     }
 }";
+            }
+
+            var inputText = File.ReadAllText(filePath);
+            return inputText;
         }
     }
 }
