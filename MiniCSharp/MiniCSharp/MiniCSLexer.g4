@@ -1,5 +1,10 @@
 ﻿lexer grammar MiniCSLexer;
 
+
+@members {
+    private int _commentLevel = 0;
+}
+
 CLASS       : 'class';
 VOID        : 'void';
 IF          : 'if';
@@ -41,6 +46,7 @@ PLUS        : '+';
 EQEQ        : '==';
 NOTEQ       : '!=';
 LESS        : '<';
+GREATER   : '>'  ;
 GREATEREQ   : '>=';
 LESSEQ      : '<=';
 MULT        : '*';
@@ -56,10 +62,55 @@ STRINGLIT: '"' (ESC_SEQ | ~["\\])* '"';
 NULL : 'null' ;
 ID: ('_'|LETTER) (LETTER|DIGIT)*;
 
-fragment ESC_SEQ: '\\' ['bfnrt"\\];
-fragment LETTER : 'a'..'z' | 'A'..'Z';
-fragment DIGIT : '0'..'9' ;
+// Comentario de línea
+LINE_COMMENT
+    : '//' ~[\r\n]* -> skip
+    ;
 
-//skip tokens
-LINE_COMMENT:   '//' .*? '\r'? '\n' -> skip ;
-WS : [ \t\n\r]+ -> skip ;
+COMMENT_START
+    : '/*'
+      {
+        _commentLevel = 1;
+      }
+      -> pushMode(COMMENT), channel(HIDDEN)
+    ;
+
+WS
+    : [ \t\r\n]+ -> skip
+    ;
+
+fragment ESC_SEQ
+    : '\\' ['bfnrt"\\]
+    ;
+fragment LETTER
+    : [a-zA-Z]
+    ;
+fragment DIGIT
+    : [0-9]
+    ;
+
+mode COMMENT;
+
+NESTED_COMMENT_START
+    : '/*'
+      {
+        _commentLevel++;
+      }
+      -> channel(HIDDEN)
+    ;
+
+NESTED_COMMENT_END
+    : '*/'
+      {
+        if (--_commentLevel == 0) PopMode();
+      }
+      -> channel(HIDDEN)
+    ;
+
+COMMENT_CONTENT
+    : . -> channel(HIDDEN)
+    ;
+
+NEWLINE_IN_COMMENT
+    : '\r'? '\n' -> channel(HIDDEN)
+    ;

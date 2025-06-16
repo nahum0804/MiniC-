@@ -182,11 +182,20 @@ namespace MiniCSharp.checker
             }
             else if (ctx.cast() != null)
             {
-                t0 = (int)VisitCast(ctx.cast());
-                int actual = (int)Visit(ctx.term(0));
-                if (actual != t0)
-                    Report($"No se puede castear de {TypeTag.PrettyPrint(actual)} a {TypeTag.PrettyPrint(t0)}",
-                        ctx.Start);
+                var toTag = (int)VisitCast(ctx.cast());
+                var actual = (int)Visit(ctx.term(0));
+
+                bool IsNumeric(int tag) =>
+                    tag is TypeTag.Int or TypeTag.Float or TypeTag.Double;
+
+                if (!(IsNumeric(actual) && IsNumeric(toTag)))
+                {
+                    Report(
+                        $"No se puede castear de {TypeTag.PrettyPrint(actual)} a {TypeTag.PrettyPrint(toTag)}",
+                    ctx.Start
+                        );
+                }
+                t0 = toTag;
             }
             else
             {

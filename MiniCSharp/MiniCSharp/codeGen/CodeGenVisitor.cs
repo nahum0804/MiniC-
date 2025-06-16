@@ -467,22 +467,45 @@ public class CodeGenVisitor : MiniCSParserBaseVisitor<object>
             var des = ctx.designator();
             var baseName = des.ident(0).GetText();
 
-            var lb = _locals[baseName];
-            _il.Emit(OpCodes.Ldloc, lb.LocalIndex);
-
-
-            if (des.DOT().Length > 0)
+            /* A)  cargar la referencia (local o campo de this) */
+            if (_locals.TryGetValue(baseName, out var lb))
+                _il.Emit(OpCodes.Ldloc, lb.LocalIndex); // variable local
+            else if (_fieldBuilders.TryGetValue((_currentType.Name, baseName), out var fb0))
             {
+                _il.Emit(OpCodes.Ldarg_0); // this
+                _il.Emit(OpCodes.Ldfld, fb0); // this.baseName
+            }
+            else
+                throw new NotSupportedException($"Variable o campo '{baseName}' no encontrado.");
+
+            /* B)  sub-casos encadenados */
+            if (des.DOT().Length > 0 && des.SBL().Length > 0)
+            {
+                /* obj.field[index] */
                 var fieldName = des.ident(1).GetText();
-                var sym = _symbols.Lookup(baseName)!;
-                var className = TypeTag.ClassNameFromTag(sym.TypeTag)!;
+                var classTag = _symbols.Lookup(baseName)!.TypeTag;
+                var className = TypeTag.ClassNameFromTag(classTag)!;
+                var fb = _fieldBuilders[(className, fieldName)];
+                _il.Emit(OpCodes.Ldfld, fb); // list
+
+                Visit(des.expr(0)); // índice
+                EmitListGet(fb.FieldType); // list.get_Item(idx)
+            }
+            else if (des.DOT().Length > 0)
+            {
+                /* obj.field */
+                var fieldName = des.ident(1).GetText();
+                var classTag = _symbols.Lookup(baseName)!.TypeTag;
+                var className = TypeTag.ClassNameFromTag(classTag)!;
                 var fb = _fieldBuilders[(className, fieldName)];
                 _il.Emit(OpCodes.Ldfld, fb);
             }
             else if (des.SBL().Length > 0)
             {
-                Visit(des.expr(0));
-                _il.Emit(OpCodes.Ldelem_I4);
+                /* arr[index]  (donde arr es variable local o campo) */
+                Visit(des.expr(0)); // índice
+                var listType = VisitAndGetListType(des.expr(0));
+                EmitListGet(listType); // list.get_Item(idx)
             }
 
             return null;
@@ -851,6 +874,30 @@ public class CodeGenVisitor : MiniCSParserBaseVisitor<object>
         return dims > 0
             ? typeof(List<>).MakeGenericType(baseClr)
             : baseClr;
+    }
+
+    // ---------------------------------------------------------------------------
+//  Helpers para acceder al indexador de List<T>
+//  Usan reflexión una única vez y luego emiten la llamada al método virtual.
+// ---------------------------------------------------------------------------
+    private void EmitListGet(Type listType)
+/* pila de entrada:  ... , list , index
+ * pila de salida :  ... , elemento
+ */
+    {
+        var getItem = listType.GetProperty("Item")!
+            .GetGetMethod()!; // List<T>.get_Item(int)
+        _il.EmitCall(OpCodes.Callvirt, getItem, null);
+    }
+
+    private void EmitListSet(Type listType)
+/* pila de entrada:  ... , list , index , nuevoValor
+ * pila de salida :  ...              (void)
+ */
+    {
+        var setItem = listType.GetProperty("Item")!
+            .GetSetMethod()!; // List<T>.set_Item(int,T)
+        _il.EmitCall(OpCodes.Callvirt, setItem, null);
     }
 
     private Type MapTagToClr(int tag)

@@ -150,9 +150,7 @@ namespace MiniCSharp.utils
      
         public static bool IsNumeric(int tag)
         {
-            return tag == Int
-                   || tag == Float
-                   || tag == Double;
+            return tag is Int or Float or Double;
         }
 
         public static bool IsBoolean(int tag)
