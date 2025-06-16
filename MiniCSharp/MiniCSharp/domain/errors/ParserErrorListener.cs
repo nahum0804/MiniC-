@@ -31,28 +31,44 @@ namespace MiniCSharp.domain.errors
         public override void SyntaxError(
             TextWriter output,
             IRecognizer recognizer,
-            IToken? offendingSymbol,
+            IToken offendingSymbol,
             int line,
-            int charPositionInLine,
+            int charPos,
             string msg,
             RecognitionException e)
         {
-            // Cambiar color de texto a rojo para resaltar el error
-            Console.ForegroundColor = ConsoleColor.Red;
-
-            // Obtener el texto del token que produjo el error (o <EOF> si es null)
-            var errorText = offendingSymbol?.Text ?? "<EOF>";
-            // ① Obtiene los tokens válidos en ese punto
             var parser = (Parser)recognizer;
-            var expected = parser.GetExpectedTokens()
-                .ToArray(); // ej. {59,60}
-            var expectedNames = string.Join(", ",
-                expected.Select(t => parser.Vocabulary.GetDisplayName(t)));
+            var expected = parser.GetExpectedTokens().ToArray();
+            var expectedNames = expected
+                .Select(t => parser.Vocabulary.GetDisplayName(t))
+                .Distinct()
+                .ToArray();
 
-            // Mensaje claro
+            string found = offendingSymbol?.Text ?? "<EOF>";
+            string finalMessage;
+
+            // --- Regla 1: llegó EOF pero faltaba una llave ---
+            if (found == "<EOF>" && expectedNames.Contains("'}'"))
+            {
+                finalMessage = "missing '}' before end of file";
+            }
+            // --- Regla 2: aparece '}' sin que se esperara ---
+            else if (found == "}" && !expectedNames.Contains("'}'"))
+            {
+                finalMessage = "unexpected '}', no matching '{'";
+            }
+            // --- Caso general ---
+            else
+            {
+                string exp =
+                    expectedNames.Length == 1
+                        ? expectedNames[0]
+                        : string.Join(" or ", expectedNames);
+                finalMessage = $"expected {exp} but found '{found}'";
+            }
+
             Console.ForegroundColor = ConsoleColor.Red;
-            Console.WriteLine($"Syntax error (line {line}, col {charPositionInLine + 1}): " +
-                              $"expected {expectedNames} but found '{errorText}'.");
+            Console.WriteLine($"Syntax error (line {line}, col {charPos + 1}): {finalMessage}");
             Console.ResetColor();
         }
     }

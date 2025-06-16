@@ -1,15 +1,8 @@
-﻿using System;
-using System.IO;
-using System.Reflection;
+﻿using System.Reflection;
 using System.Reflection.Emit;
 using System.Collections.Concurrent;
-using System.Diagnostics.CodeAnalysis;
 using System.Text;
-using System.Threading.Tasks;
-using System.Windows.Forms;
-using System.Drawing;
 using Antlr4.Runtime;
-using Antlr4.Runtime.Tree;
 using MiniCSharp.checker;
 using MiniCSharp.codeGen;
 using MiniCSharp.domain.errors;

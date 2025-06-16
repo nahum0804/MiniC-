@@ -18,7 +18,7 @@ namespace MiniCSharp.checker
 
         private int _switchDepth = 0;
 
-      
+
         public Dictionary<ParserRuleContext, int> ExprTypes { get; } = new();
 
         private void Report(string msg, IToken tok)
@@ -165,6 +165,8 @@ namespace MiniCSharp.checker
                 VisitVarDecl(v);
             foreach (var m in ctx.methodDecl())
                 VisitMethodDecl(m);
+
+            CheckEntryPoint(ctx);
             return null;
         }
 
@@ -192,9 +194,10 @@ namespace MiniCSharp.checker
                 {
                     Report(
                         $"No se puede castear de {TypeTag.PrettyPrint(actual)} a {TypeTag.PrettyPrint(toTag)}",
-                    ctx.Start
-                        );
+                        ctx.Start
+                    );
                 }
+
                 t0 = toTag;
             }
             else
@@ -608,9 +611,9 @@ namespace MiniCSharp.checker
             if (rightTag == TypeTag.Unknown)
             {
                 bool isRef =
-                    leftTag == TypeTag.String           // string es referencia
-                    || leftTag >= TypeTag.ListBase        // cualquier arreglo (int[], char[], etc.)
-                    || TypeTag.IsCustomClass(leftTag);    // cualquier clase definida
+                    leftTag == TypeTag.String // string es referencia
+                    || leftTag >= TypeTag.ListBase // cualquier arreglo (int[], char[], etc.)
+                    || TypeTag.IsCustomClass(leftTag); // cualquier clase definida
 
                 if (!isRef)
                     Report($"No se puede asignar null a {TypeTag.PrettyPrint(leftTag)}", ctx.Start);
@@ -753,6 +756,19 @@ namespace MiniCSharp.checker
             _currentReturnTag = TypeTag.Void;
 
             return TypeTag.Void;
+        }
+
+        private void CheckEntryPoint(ParserRuleContext ctx)
+        {
+            var main = Table.GlobalScope
+                .OfType<MethodSymbol>()
+                .FirstOrDefault(m =>
+                    m.Token.Text == "Main" &&
+                    m.ReturnTypeTag == TypeTag.Void &&
+                    m.ParamTypeTags.Count == 0);
+
+            if (main == null)
+                _errors.Add($"Semantic error: missing entry method 'void Main()' (line {ctx.Start.Line}).");
         }
     }
 }

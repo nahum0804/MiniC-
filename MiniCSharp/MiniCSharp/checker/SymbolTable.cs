@@ -7,12 +7,15 @@ public class SymbolTable
 {
     private readonly LinkedList<Symbol> _symbols = [];
     private int CurrentLevel { get; set; } = -1;
+    
 
     public SymbolTable()
     {
         _symbols.Clear();
         CurrentLevel = -1;
     }
+    public IEnumerable<Symbol> GlobalScope =>
+        _symbols.Where(s => s.ScopeLevel == 0);
 
     public void OpenScope()
     {

@@ -1,1 +1,4 @@
-﻿class P {\n void Main() {\n int x = 0;
+﻿class P { 
+int a;
+} 
+a = 7;
