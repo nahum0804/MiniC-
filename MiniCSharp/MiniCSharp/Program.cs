@@ -256,6 +256,7 @@ namespace MiniCSharpIDE
 
             var programType = asmBuilder.GetType("P");
             var mainMethod  = programType?.GetMethod("Main", BindingFlags.Public | BindingFlags.Static);
+            
             try
             {
                 mainMethod?.Invoke(null, null);
