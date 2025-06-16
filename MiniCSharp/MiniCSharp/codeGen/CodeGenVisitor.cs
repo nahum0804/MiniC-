@@ -4,6 +4,7 @@ using System.Text.RegularExpressions;
 using Antlr4.Runtime;
 using MiniCSharp.checker;
 using MiniCSharp.utils;
+using EIL = System.Reflection.Emit.Label;
 
 namespace MiniCSharp.codeGen;
 
@@ -555,7 +556,7 @@ public class CodeGenVisitor : MiniCSParserBaseVisitor<object>
         var switchLocal = _il.DeclareLocal(typeof(int));
         _il.Emit(OpCodes.Stloc, switchLocal);
 
-        var caseLabels = new List<Label>();
+        var caseLabels = new List<EIL>();
         foreach (var cb in ctx.caseBlock())
             caseLabels.Add(_il.DefineLabel());
         var defaultLabel = _il.DefineLabel();

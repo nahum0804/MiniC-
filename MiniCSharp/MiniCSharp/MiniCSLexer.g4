@@ -62,4 +62,9 @@ fragment DIGIT : '0'..'9' ;
 
 //skip tokens
 LINE_COMMENT:   '//' .*? '\r'? '\n' -> skip ;
-WS : [ \t\n\r]+ -> skip ;
+NEWLINE
+  : '\r'? '\n' -> skip
+  ;
+WS
+  : [ \t]+ -> skip
+  ;

@@ -1,16 +1,51 @@
-﻿class P {
-  void Main() {
-    // — declarar y luego asignar ord/chr/null —
-    string s;
-    s = null;
+﻿class P 
+{
+    int numerazo;
+    int[] listanumeros;
+    char[] caracteres;
+    string[] cadenas;
+    bool[] condiciones;
+    
+    int sum(int a, int b)
+    {
+        int suma;
+        suma = a + b;
+        
+        switch (suma) {
+            case suma<2:
+                return 1;
+            case suma<3:
+                return 2;
+            default:
+                return 100;
+        }
+    }
+    
+    string llenarlistas(){
+        if(1 != 10){
+            return "Listo";
+        } else {
+            return "Todo mal";
+        }
+    }
+    
+    int resta(int a, int b) 
+    { 
+        return a - b;
+    }
 
-    int[] arr;
-    arr = null;
-
-    char c;
-    c = chr(65);
-
-    int i;
-    i = ord('A');
-  }
+    void Main()
+    {
+        int x;
+        x = sum(5, 40);
+        write(x);   
+        
+        int y;
+        y = resta(40,5);
+        write(y);
+        
+        string response;
+        response = llenarlistas();
+        write(response);
+    }
 }
