@@ -5,10 +5,10 @@
     int[] neg;
   }
   
-  Table val;
   
   void Main ()
   {
+    Table val;
     int x, i, size;
     size = 10;
 

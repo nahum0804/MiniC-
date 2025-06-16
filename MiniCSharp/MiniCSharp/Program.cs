@@ -128,7 +128,7 @@ namespace MiniCSharpIDE
             }
             catch (Exception ex)
             {
-                Console.Error.WriteLine("Error de ejecución: " + ex.Message);
+                Console.Error.WriteLine("Error de ejecución: " + ex);
             }
             finally
             {
