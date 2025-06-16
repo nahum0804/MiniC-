@@ -1,9 +1,15 @@
-﻿using System.Reflection;
+﻿using System;
+using System.IO;
+using System.Reflection;
 using System.Reflection.Emit;
 using System.Collections.Concurrent;
 using System.Diagnostics.CodeAnalysis;
 using System.Text;
+using System.Threading.Tasks;
+using System.Windows.Forms;
+using System.Drawing;
 using Antlr4.Runtime;
+using Antlr4.Runtime.Tree;
 using MiniCSharp.checker;
 using MiniCSharp.codeGen;
 using MiniCSharp.domain.errors;
@@ -21,14 +27,10 @@ namespace MiniCSharpIDE
         }
     }
 
-    /// <summary>TextReader que recibe líneas desde la GUI (bloquea en ReadLine).</summary>
     public class GuiTextReader : TextReader
     {
         private readonly BlockingCollection<string> _queue = new();
-
-        /// <summary>Encola una línea escrita por el usuario (Enter).</summary>
         public void Push(string line) => _queue.Add(line);
-
         public override string? ReadLine() => _queue.Take();
     }
     
@@ -45,13 +47,10 @@ namespace MiniCSharpIDE
         }
 
         public override Encoding Encoding => _enc;
-
         public override void Write(char value) => Write(value.ToString());
-
         public override void Write(string? value)
         {
-            if (value is null) return;
-
+            if (value == null) return;
             _box.Invoke(() =>
             {
                 _box.SelectionColor = _color;
@@ -59,22 +58,19 @@ namespace MiniCSharpIDE
                 _box.ScrollToCaret();
             });
         }
-
         public override void WriteLine(string? value) => Write(value + Environment.NewLine);
     }
 
-
     public sealed class MainForm : Form
     {
-        private readonly TextBox _txtSource;  
-        private readonly TextBox _txtStdin;    
+        private readonly TextBox _txtSource;
         private readonly Button _btnCompileRun;
         private readonly RichTextBox _rtbOutput;
 
-        private readonly GuiTextReader _stdinReader = new();               
-        private readonly GuiTextWriter _guiStdOut;                         
-        private readonly GuiTextWriter _guiStdErr;                         
-
+        private readonly GuiTextReader _stdinReader = new();
+        private readonly GuiTextWriter _guiStdOut;
+        private readonly GuiTextWriter _guiStdErr;
+        private int _consoleInputStart;
 
         public MainForm()
         {
@@ -90,12 +86,11 @@ namespace MiniCSharpIDE
                 BackColor = Color.Black,
                 ForeColor = Color.White,
                 ColumnCount = 1,
-                RowCount = 4
+                RowCount = 3
             };
-            layout.RowStyles.Add(new RowStyle(SizeType.Percent, 55));   // Código
-            layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 25));  // StdIn
-            layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 40));  // Botón
-            layout.RowStyles.Add(new RowStyle(SizeType.Percent, 45));   // Salida
+            layout.RowStyles.Add(new RowStyle(SizeType.Percent, 55F));
+            layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 40F));
+            layout.RowStyles.Add(new RowStyle(SizeType.Percent, 45F));
 
             _txtSource = new TextBox
             {
@@ -108,99 +103,83 @@ namespace MiniCSharpIDE
             };
             layout.Controls.Add(_txtSource, 0, 0);
 
-            _txtStdin = new TextBox
-            {
-                Dock = DockStyle.Fill,
-                Font = new Font("Consolas", 10),
-                BackColor = Color.Black,
-                ForeColor = Color.Lime,
-                PlaceholderText = "Entrada para read()  ―  escribe algo y presiona Enter"
-            };
-            _txtStdin.KeyDown += TxtStdin_KeyDown;
-            layout.Controls.Add(_txtStdin, 0, 1);
-
             _btnCompileRun = new Button
             {
-                Text = "Compilar / Correr",
+                Text = "Compilar / Correr (F5)",
                 Dock = DockStyle.Fill,
-                BackColor = Color.Cyan,
-                ForeColor = Color.Black
+                BackColor = Color.Fuchsia,
+                ForeColor = Color.White
             };
             _btnCompileRun.Click += BtnCompileRun_Click;
-            layout.Controls.Add(_btnCompileRun, 0, 2);
+            layout.Controls.Add(_btnCompileRun, 0, 1);
+
             KeyPreview = true;
             KeyDown += (s, e) => { if (e.KeyCode == Keys.F5) BtnCompileRun_Click(s, EventArgs.Empty); };
 
             _rtbOutput = new RichTextBox
             {
                 Dock = DockStyle.Fill,
-                ReadOnly = true,
                 Font = new Font("Consolas", 10),
                 BackColor = Color.Black,
-                ForeColor = Color.White
+                ForeColor = Color.White,
+                ReadOnly = false
             };
-            _rtbOutput = new RichTextBox
-            {
-                Dock = DockStyle.Fill,
-                ReadOnly = true,
-                Font = new Font("Consolas", 10),
-                BackColor = Color.Black,
-                ForeColor = Color.White
-            };
-            layout.Controls.Add(_rtbOutput, 0, 3);
-
-            _guiStdOut = new GuiTextWriter(_rtbOutput, Color.White); 
-            _guiStdErr = new GuiTextWriter(_rtbOutput, Color.Red);  
-
-            layout.Controls.Add(_rtbOutput, 0, 3);
+            _rtbOutput.KeyPress += RtbOutput_KeyPress;
+            _rtbOutput.KeyDown  += RtbOutput_KeyDown;
+            layout.Controls.Add(_rtbOutput, 0, 2);
 
             Controls.Add(layout);
             _txtSource.Text = GetSampleCode();
+
+            _guiStdOut = new GuiTextWriter(_rtbOutput, Color.White);
+            _guiStdErr = new GuiTextWriter(_rtbOutput, Color.Red);
         }
 
-        //public sealed override Color BackColor
-        //{
-        //    get => base.BackColor;
-        //    set => base.BackColor = value;
-        //}
-
-        //[AllowNull] public sealed override string Text
-        //{
-        //   get => base.Text;
-        //    set => base.Text = value;
-        //}
-
-        private void TxtStdin_KeyDown(object? sender, KeyEventArgs e)
+        private void RtbOutput_KeyPress(object sender, KeyPressEventArgs e)
         {
-            if (e.KeyCode != Keys.Enter) return;
-            _stdinReader.Push(_txtStdin.Text);
-
-            _rtbOutput.Invoke(new Action(() =>
-            {
-                _rtbOutput.SelectionColor = Color.Lime;  
-                _rtbOutput.AppendText(_txtStdin.Text + Environment.NewLine);
-                _rtbOutput.ScrollToCaret();
-            }));
-
-            _txtStdin.Clear();
-            e.SuppressKeyPress = true;
+            if (_rtbOutput.SelectionStart < _consoleInputStart)
+                _rtbOutput.SelectionStart = _rtbOutput.TextLength;
         }
 
-        private async void BtnCompileRun_Click(object? sender, EventArgs e)
+        private void RtbOutput_KeyDown(object sender, KeyEventArgs e)
+        {
+            if (_rtbOutput.ReadOnly) { e.SuppressKeyPress = true; return; }
+            if (e.KeyCode == Keys.Back && _rtbOutput.SelectionStart <= _consoleInputStart)
+            {
+                e.SuppressKeyPress = true;
+                return;
+            }
+            if (e.KeyCode == Keys.Enter)
+            {
+                int lastNewline = _rtbOutput.Text.LastIndexOf('\n', _rtbOutput.TextLength - 1);
+                int startIndex = Math.Max(lastNewline + 1, _consoleInputStart);
+                string line = _rtbOutput.Text.Substring(startIndex, _rtbOutput.TextLength - startIndex)
+                                            .TrimEnd('\r', '\n');
+                _stdinReader.Push(line);
+                _rtbOutput.AppendText(Environment.NewLine);
+                _consoleInputStart = _rtbOutput.TextLength;
+                e.SuppressKeyPress = true;
+            }
+        }
+
+        private async void BtnCompileRun_Click(object sender, EventArgs e)
         {
             _btnCompileRun.Enabled = false;
-
+            _rtbOutput.ReadOnly = false;
             _rtbOutput.Clear();
             _rtbOutput.SelectionColor = Color.LimeGreen;
             _rtbOutput.AppendText("Compilando y ejecutando...\n\n");
+            _rtbOutput.SelectionColor = Color.White;
+            _consoleInputStart = _rtbOutput.TextLength;
+            _rtbOutput.Focus();
 
             var originalOut = Console.Out;
             var originalErr = Console.Error;
             var originalIn  = Console.In;
 
-            Console.SetOut(_guiStdOut);     
-            Console.SetError(_guiStdErr);   
-            Console.SetIn(_stdinReader);    
+            Console.SetOut(_guiStdOut);
+            Console.SetError(_guiStdErr);
+            Console.SetIn(_stdinReader);
 
             try
             {
@@ -208,7 +187,7 @@ namespace MiniCSharpIDE
             }
             catch (Exception ex)
             {
-                Console.Error.WriteLine($"[FATAL] {ex.Message}");
+                Console.Error.WriteLine($"[FATAL] {ex.GetBaseException().Message}");
             }
             finally
             {
@@ -216,15 +195,14 @@ namespace MiniCSharpIDE
                 Console.SetError(originalErr);
                 Console.SetIn(originalIn);
 
-                _rtbOutput.Invoke(() =>
-                {
-                    _rtbOutput.SelectionColor = Color.LimeGreen;
-                    _rtbOutput.AppendText("\n============ Fin de la ejecución ============\n");
-                    _rtbOutput.SelectionColor = Color.Cyan;
-                    _rtbOutput.AppendText(@"
-
+                _rtbOutput.ReadOnly = true;
+                _rtbOutput.SelectionColor = Color.LimeGreen;
+                _rtbOutput.AppendText("\n============ Fin de la ejecución ============");
+                _consoleInputStart = _rtbOutput.TextLength;
+                _rtbOutput.SelectionColor = Color.Cyan;
+                _rtbOutput.AppendText(@"
  __  __     
-|  \/  (_)     (_)
+|  \/  (_)_     (_)
 | \  / |_| |__ | |
 | |\/| | |  _ \  |
 | |  | | | | | | |
@@ -236,18 +214,15 @@ namespace MiniCSharpIDE
 | |___  | _    __      _|
  \____|    |__|   |__ |
 " + Environment.NewLine);
-                    _rtbOutput.SelectionColor = Color.White;
-                });
-
+                _rtbOutput.AppendText("\n=============================================");
+                _rtbOutput.SelectionColor = Color.White;
                 _btnCompileRun.Enabled = true;
             }
         }
 
-
         private void CompileAndRun()
         {
-            var inputText  = _txtSource.Invoke<string>(() => _txtSource.Text);
-
+            var inputText = _txtSource.Invoke<string>(() => _txtSource.Text);
             var inputStream = new AntlrInputStream(inputText);
             var lexer  = new MiniCSLexer(inputStream);
             lexer.RemoveErrorListeners();
@@ -272,7 +247,6 @@ namespace MiniCSharpIDE
                 return;
             }
 
-            // Generación de código IL y ejecución
             var asmName = new AssemblyName("MiniCSharpProgram");
             var asmBuilder = AssemblyBuilder.DefineDynamicAssembly(asmName, AssemblyBuilderAccess.Run);
             var moduleBuilder = asmBuilder.DefineDynamicModule(asmName.Name);
@@ -282,13 +256,19 @@ namespace MiniCSharpIDE
 
             var programType = asmBuilder.GetType("P");
             var mainMethod  = programType?.GetMethod("Main", BindingFlags.Public | BindingFlags.Static);
-            mainMethod?.Invoke(null, null);
+            try
+            {
+                mainMethod?.Invoke(null, null);
+            }
+            catch (TargetInvocationException tie)
+            {
+                Console.Error.WriteLine($"[ERROR EJECUCIÓN] {tie.InnerException?.Message}");
+            }
         }
 
         private static string GetSampleCode()
         {
             const string filePath = "Test.txt";
-
             return File.Exists(filePath)
                 ? File.ReadAllText(filePath)
                 : @"class P
@@ -301,7 +281,7 @@ namespace MiniCSharpIDE
         write(""Ingresa un número: "");
         read(n);
         write(""El doble es: "");
-        write( sum(n, n) );
+        write(sum(n, n));
     }
 }";
         }
