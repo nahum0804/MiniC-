@@ -42,17 +42,17 @@ namespace MiniCSharp.domain.errors
 
             // Obtener el texto del token que produjo el error (o <EOF> si es null)
             var errorText = offendingSymbol?.Text ?? "<EOF>";
+            // ① Obtiene los tokens válidos en ese punto
+            var parser = (Parser)recognizer;
+            var expected = parser.GetExpectedTokens()
+                .ToArray(); // ej. {59,60}
+            var expectedNames = string.Join(", ",
+                expected.Select(t => parser.Vocabulary.GetDisplayName(t)));
 
-            // Extraer la parte del mensaje antes de 'expecting' para mayor claridad
-            var posExpecting = msg.IndexOf("expecting", StringComparison.Ordinal);
-            var detail = posExpecting >= 0
-                ? msg[..posExpecting].Trim()
-                : msg;
-
-            // Formatear e imprimir el mensaje de error
-            Console.WriteLine($"Syntax error: Line: {line}, Column: {charPositionInLine}: “{errorText}” → {detail}");
-
-            // Restaurar color de consola
+            // Mensaje claro
+            Console.ForegroundColor = ConsoleColor.Red;
+            Console.WriteLine($"Syntax error (line {line}, col {charPositionInLine + 1}): " +
+                              $"expected {expectedNames} but found '{errorText}'.");
             Console.ResetColor();
         }
     }
