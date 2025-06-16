@@ -1,4 +1,5 @@
-﻿using System.Reflection;
+﻿using System.Globalization;
+using System.Reflection;
 using System.Reflection.Emit;
 using System.Text.RegularExpressions;
 using Antlr4.Runtime;
@@ -558,14 +559,22 @@ public class CodeGenVisitor : MiniCSParserBaseVisitor<object>
 
         if (ctx.FLOATLIT() != null)
         {
-            float f = float.Parse(ctx.FLOATLIT().GetText().TrimEnd('f', 'F'));
+            // Parse con invariant culture y sin sufijo f/F
+            float f = float.Parse(
+                ctx.FLOATLIT().GetText().TrimEnd('f', 'F'),
+                CultureInfo.InvariantCulture
+            );
             _il.Emit(OpCodes.Ldc_R4, f);
             return null;
         }
 
         if (ctx.DOUBLELIT() != null)
         {
-            double d = double.Parse(ctx.DOUBLELIT().GetText());
+            // Parse con invariant culture para aceptar el punto decimal
+            double d = double.Parse(
+                ctx.DOUBLELIT().GetText(),
+                CultureInfo.InvariantCulture
+            );
             _il.Emit(OpCodes.Ldc_R8, d);
             return null;
         }
